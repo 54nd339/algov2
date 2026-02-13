@@ -1,22 +1,31 @@
+"use client";
+
 import { Sidebar } from "@/components/layout/sidebar";
 import { Header } from "@/components/layout/header";
+import { useAppStore } from "@/stores/app-store";
 
 export default function VisualizerLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const desktopSidebarOpen = useAppStore((s) => s.desktopSidebarOpen);
+
   return (
     <div className="flex min-h-screen">
-      {/* Desktop sidebar */}
-      <div className="hidden md:block md:w-64 lg:w-72 shrink-0 sticky top-0 h-screen">
-        <Sidebar />
+      <div
+        className="hidden md:block shrink-0 sticky top-0 h-screen overflow-hidden transition-[width] duration-300 ease-in-out"
+        style={{ width: desktopSidebarOpen ? undefined : 0 }}
+        data-open={desktopSidebarOpen}
+      >
+        <div className="h-full w-64 md:w-72">
+          <Sidebar />
+        </div>
       </div>
 
-      {/* Main content area */}
       <div className="flex flex-1 flex-col min-w-0">
         <Header />
-        <main className="flex-1 p-4 md:p-6">{children}</main>
+        <main className="flex-1 p-2 md:p-3">{children}</main>
       </div>
     </div>
   );

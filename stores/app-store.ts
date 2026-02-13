@@ -7,25 +7,26 @@ interface CurrentAlgo {
 }
 
 interface AppState {
-  /** Mobile sidebar open/close state */
   sidebarOpen: boolean;
-  /** Currently active algorithm (null on home page) */
+  desktopSidebarOpen: boolean;
   currentAlgo: CurrentAlgo | null;
 }
 
 interface AppActions {
   setSidebarOpen: (open: boolean) => void;
   toggleSidebar: () => void;
+  toggleDesktopSidebar: () => void;
   setCurrentAlgo: (algo: CurrentAlgo | null) => void;
 }
 
 export const useAppStore = create<AppState & AppActions>((set) => ({
-  // ── State ────────────────────────────────────────────────────────────────
   sidebarOpen: false,
+  desktopSidebarOpen: true,
   currentAlgo: null,
 
-  // ── Actions ──────────────────────────────────────────────────────────────
   setSidebarOpen: (open) => set({ sidebarOpen: open }),
   toggleSidebar: () => set((s) => ({ sidebarOpen: !s.sidebarOpen })),
+  toggleDesktopSidebar: () =>
+    set((s) => ({ desktopSidebarOpen: !s.desktopSidebarOpen })),
   setCurrentAlgo: (algo) => set({ currentAlgo: algo }),
 }));

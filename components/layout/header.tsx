@@ -1,7 +1,7 @@
 "use client";
 
-import { format } from "date-fns";
-import { Github, Menu, X } from "lucide-react";
+import { Menu, Moon, Sun, X } from "lucide-react";
+import { useTheme } from "next-themes";
 import { useAppStore } from "@/stores/app-store";
 import { Button } from "@/components/ui/button";
 import {
@@ -17,50 +17,55 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
 
 export function Header() {
   const currentAlgo = useAppStore((s) => s.currentAlgo);
   const sidebarOpen = useAppStore((s) => s.sidebarOpen);
   const setSidebarOpen = useAppStore((s) => s.setSidebarOpen);
+  const desktopSidebarOpen = useAppStore((s) => s.desktopSidebarOpen);
+  const toggleDesktopSidebar = useAppStore((s) => s.toggleDesktopSidebar);
 
+  const { theme, setTheme } = useTheme();
   const displayName = currentAlgo?.algoName ?? "Home";
-  const dateStr = format(new Date(), "MM/dd");
 
   return (
-    <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b border-border bg-background/80 backdrop-blur-sm px-4 md:px-6">
-      {/* ── Left: Date + Algo Name ──────────────────────────────────── */}
+    <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b-2 border-border bg-background px-4 md:px-6">
       <div className="flex items-center gap-3">
-        <span
-          suppressHydrationWarning
-          className="hidden sm:block font-space text-sm text-algo-green"
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={toggleDesktopSidebar}
+          className="hidden md:inline-flex group"
+          aria-label="Toggle sidebar"
         >
-          {dateStr}
-        </span>
-        <div className="hidden sm:block h-6 w-2 rounded-sm bg-algo-cyan" />
-        <h2 className="font-space text-lg uppercase tracking-wide text-foreground leading-none">
-          {displayName}
-        </h2>
+          {desktopSidebarOpen ? (
+            <PanelLeftClose className="size-5 text-muted-foreground transition-colors group-hover:text-foreground" />
+          ) : (
+            <PanelLeftOpen className="size-5 text-muted-foreground transition-colors group-hover:text-foreground" />
+          )}
+        </Button>
+        <div className="flex items-center gap-3">
+          <span className="h-7 w-2 bg-algo-cyan" aria-hidden />
+          <h2 className="font-space text-base font-bold uppercase tracking-widest text-foreground leading-none">
+            {displayName}
+          </h2>
+        </div>
       </div>
 
-      {/* ── Right: GitHub + Mobile Menu ─────────────────────────────── */}
       <div className="flex items-center gap-2">
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button variant="ghost" size="icon" asChild>
-              <a
-                href="https://github.com/54nd339/algoviz"
-                target="_blank"
-                rel="noreferrer"
-                aria-label="GitHub"
-              >
-                <Github className="size-5 text-muted-foreground" />
-              </a>
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>View source on GitHub</TooltipContent>
-        </Tooltip>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+          aria-label="Toggle theme"
+          className="group"
+          suppressHydrationWarning
+        >
+          <Sun className="size-5 rotate-0 scale-100 text-muted-foreground transition-all duration-300 group-hover:text-foreground dark:-rotate-90 dark:scale-0" />
+          <Moon className="absolute size-5 rotate-90 scale-0 text-muted-foreground transition-all duration-300 group-hover:text-foreground dark:rotate-0 dark:scale-100" />
+        </Button>
 
-        {/* Mobile sidebar trigger */}
         <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
           <SheetTrigger asChild>
             <Button

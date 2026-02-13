@@ -91,13 +91,25 @@
   --sidebar-ring: oklch(0.704 0.04 256.788);
 
   /* ── AlgoViz identity colors (light) ────────────────────────────────── */
-  --algo-green: #15803d;
-  --algo-green-bg: #f0fdf4;
-  --algo-cyan: #0891b2;
+  --algo-green: #059033;
+  --algo-green-bg: #e6f5eb;
+  --algo-cyan: #0878a0;
   --algo-red: #dc2626;
-  --algo-yellow: #ca8a04;
+  --algo-yellow: #a16b00;
   --algo-blue: #2563eb;
-  --algo-purple: #9333ea;
+  --algo-purple: #7c22c9;
+
+  /* ── Bar visualization colors (light) ──────────────────────────────── */
+  --bar-default: #059033;
+  --bar-default-border: #06c244;
+  --bar-comparing: #2563eb;
+  --bar-comparing-border: #5b8def;
+  --bar-swap: #7c22c9;
+  --bar-swap-border: #a855f7;
+  --bar-sorted: #059033;
+  --bar-sorted-border: #06c244;
+  --bar-special: #dc2626;
+  --bar-special-border: #f87171;
 }
 
 .dark {
@@ -141,6 +153,18 @@
   --algo-yellow: #e5c454;
   --algo-blue: #4383ff;
   --algo-purple: #db29e1;
+
+  /* ── Bar visualization colors (dark) ───────────────────────────────── */
+  --bar-default: #017501;
+  --bar-default-border: #1efe5b;
+  --bar-comparing: #100175;
+  --bar-comparing-border: #4383ff;
+  --bar-swap: #600382;
+  --bar-swap-border: #db29e1;
+  --bar-sorted: #017501;
+  --bar-sorted-border: #1efe5b;
+  --bar-special: #75012c;
+  --bar-special-border: #ff483b;
 }
 
 /* ── Base layer ───────────────────────────────────────────────────────────── */
@@ -153,6 +177,21 @@
   body {
     @apply bg-background text-foreground;
   }
+}
+
+/* ── AlgoViz bar colors ───────────────────────────────────────────────────── */
+
+@theme inline {
+  --color-bar-default: var(--bar-default);
+  --color-bar-default-border: var(--bar-default-border);
+  --color-bar-comparing: var(--bar-comparing);
+  --color-bar-comparing-border: var(--bar-comparing-border);
+  --color-bar-swap: var(--bar-swap);
+  --color-bar-swap-border: var(--bar-swap-border);
+  --color-bar-sorted: var(--bar-sorted);
+  --color-bar-sorted-border: var(--bar-sorted-border);
+  --color-bar-special: var(--bar-special);
+  --color-bar-special-border: var(--bar-special-border);
 }
 
 /* ── Scrollbar ────────────────────────────────────────────────────────────── */
@@ -173,4 +212,65 @@
 
 .dark *::-webkit-scrollbar-thumb {
   background-color: hsl(0 0% 60% / 0.2);
+}
+
+/* ── Pathfinding grid cell animations ─────────────────────────────────── */
+
+@keyframes cell-visited-anim {
+  0% {
+    transform: scale(0.3);
+    border-radius: 50%;
+    opacity: 0.4;
+  }
+  50% {
+    border-radius: 25%;
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(1);
+    border-radius: 0;
+    opacity: 1;
+  }
+}
+
+@keyframes cell-path-anim {
+  0% {
+    transform: scale(0.5);
+    opacity: 0.5;
+  }
+  50% {
+    transform: scale(1.2);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes cell-wall-anim {
+  0% {
+    transform: scale(0.7);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.cell-visited {
+  animation: cell-visited-anim 0.3s ease-out forwards;
+}
+
+.cell-path {
+  animation: cell-path-anim 0.4s ease-out forwards;
+}
+
+.cell-wall {
+  animation: cell-wall-anim 0.15s ease-out forwards;
+}
+
+/* ── ReactFlow overrides for graph visualizer ─────────────────────────── */
+
+.react-flow__background {
+  background: transparent !important;
 }
