@@ -1,31 +1,13 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
+import { useMemo } from "react";
 import { useActor } from "@xstate/react";
-import { createGraphMachine } from "@/lib/machines/graph-machine";
-import { useAppStore } from "@/stores/app-store";
+import { createGraphMachine } from "@/lib/machines";
+import { useVisualizerSetup, stateOf } from "./useVisualizerMachine";
 
 export function useGraphMachine(algoId: string) {
-  const algoName = algoId
-    .split("-")
-    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-    .join(" ");
-
-  const setCurrentAlgo = useAppStore((s) => s.setCurrentAlgo);
-  const machine = useMemo(
-    () => createGraphMachine(algoId),
-    [algoId],
-  );
+  const machine = useMemo(() => createGraphMachine(algoId), [algoId]);
   const [snapshot, send] = useActor(machine);
-
-  useEffect(() => {
-    setCurrentAlgo({ categoryId: "shortest-path", algoId, algoName });
-    return () => setCurrentAlgo(null);
-  }, [algoId, algoName, setCurrentAlgo]);
-
-  useEffect(() => {
-    send({ type: "generate" });
-  }, [send]);
-
-  return { snapshot, send };
+  useVisualizerSetup(algoId, send, { categoryId: "shortest-path", autoGenerate: true });
+  return { snapshot, send, state: stateOf(snapshot) };
 }

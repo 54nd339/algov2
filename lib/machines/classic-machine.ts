@@ -1,8 +1,9 @@
 import { assign, setup } from "xstate";
-import type { ClassicContext, ClassicEvent, ClassicSnapshot } from "@/lib/types/classic";
+import type { ClassicContext, ClassicEvent, ClassicSnapshot } from "@/lib/types";
+import { visualizerStates } from "./visualizer-machine";
 
 export function createClassicMachine(algorithmId: string) {
-  const defaultDiscs = algorithmId === "tower-of-hanoi" ? 4 : 4;
+  const defaultDiscs = 4;
 
   return setup({
     types: {
@@ -32,102 +33,17 @@ export function createClassicMachine(algorithmId: string) {
         })),
       },
       generate: {
-        actions: assign(() => ({
-          stepIndex: 0,
-          snapshot: null,
-        })),
+        actions: assign(() => ({ stepIndex: 0, snapshot: null })),
       },
     },
-    states: {
-      idle: {
-        on: {
-          play: "running",
-          step: "stepping",
-          reset: {
-            actions: assign(() => ({
-              stepIndex: 0,
-              snapshot: null,
-            })),
-          },
-          updateSnapshot: {
-            actions: assign({
-              snapshot: ({ event }) =>
-                "snapshot" in event ? (event.snapshot as ClassicSnapshot) : null,
-            }),
-          },
-        },
-      },
-      running: {
-        on: {
-          pause: "paused",
-          reset: {
-            target: "idle",
-            actions: assign(() => ({
-              stepIndex: 0,
-              snapshot: null,
-            })),
-          },
-          updateSnapshot: {
-            actions: assign({
-              snapshot: ({ event }) =>
-                "snapshot" in event ? (event.snapshot as ClassicSnapshot) : null,
-              stepIndex: ({ context }) => context.stepIndex + 1,
-            }),
-          },
-          done: "done",
-        },
-      },
-      paused: {
-        on: {
-          play: "running",
-          step: "stepping",
-          reset: {
-            target: "idle",
-            actions: assign(() => ({
-              stepIndex: 0,
-              snapshot: null,
-            })),
-          },
-        },
-      },
-      stepping: {
-        on: {
-          updateSnapshot: {
-            target: "paused",
-            actions: assign({
-              snapshot: ({ event }) =>
-                "snapshot" in event ? (event.snapshot as ClassicSnapshot) : null,
-              stepIndex: ({ context }) => context.stepIndex + 1,
-            }),
-          },
-          play: "running",
-          reset: {
-            target: "idle",
-            actions: assign(() => ({
-              stepIndex: 0,
-              snapshot: null,
-            })),
-          },
-        },
-      },
-      done: {
-        on: {
-          reset: {
-            target: "idle",
-            actions: assign(() => ({
-              stepIndex: 0,
-              snapshot: null,
-            })),
-          },
-          generate: {
-            target: "idle",
-            actions: assign(() => ({
-              stepIndex: 0,
-              snapshot: null,
-            })),
-          },
-        },
-      },
-    },
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- visualizerStates returns a generic shape; XState's createMachine types can't infer the concrete state config
+    states: visualizerStates({
+      onReset: () => ({ stepIndex: 0, snapshot: null }),
+      onSnapshot: (event, ctx) => ({
+        snapshot: "snapshot" in event ? (event.snapshot as ClassicSnapshot) : null,
+        stepIndex: ctx.stepIndex + 1,
+      }),
+      idleAcceptsSnapshot: true,
+    }) as any,
   });
 }

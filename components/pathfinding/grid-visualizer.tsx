@@ -1,10 +1,11 @@
 "use client";
 
-import { useCallback, useRef } from "react";
+import { useCallback, useMemo, useRef } from "react";
 import { cn } from "@/lib/utils";
-import { cellKey } from "@/lib/algorithms/pathfinding/grid";
-import type { PathfindingSnapshot } from "@/lib/types/pathfinding";
-import type { GridCell } from "@/lib/types/pathfinding";
+import { cellKey } from "@/lib/algorithms/pathfinding";
+import { GRID_CELL_SIZE, GRID_GAP } from "@/config";
+import type { PathfindingSnapshot, GridCell } from "@/lib/types";
+import { ScrollArea } from "@/components/ui";
 
 interface GridVisualizerProps {
   grid: GridCell[][];
@@ -16,10 +17,19 @@ interface GridVisualizerProps {
   disabled?: boolean;
 }
 
+/** Reads data-row / data-col from the event target element. */
+function cellFromEvent(e: React.PointerEvent): { row: number; col: number } | null {
+  const el = e.target as HTMLElement;
+  const r = el.dataset.row;
+  const c = el.dataset.col;
+  if (r === undefined || c === undefined) return null;
+  return { row: Number(r), col: Number(c) };
+}
+
 export function GridVisualizer({
   grid,
   snapshot,
-  cellSize = 24,
+  cellSize = GRID_CELL_SIZE,
   onToggleWall,
   onSetStart,
   onSetEnd,
@@ -28,20 +38,26 @@ export function GridVisualizer({
   const isDrawingRef = useRef(false);
   const modeRef = useRef<"wall" | "start" | "end">("wall");
 
-  const visitedSet = new Set(snapshot?.visitedCells ?? []);
-  const pathSet = new Set(snapshot?.pathCells ?? []);
-  const frontierSet = new Set(snapshot?.frontierCells ?? []);
+  const visitedCells = snapshot?.visitedCells;
+  const pathCells = snapshot?.pathCells;
+  const frontierCells = snapshot?.frontierCells;
+  const visitedSet = useMemo(() => new Set(visitedCells ?? []), [visitedCells]);
+  const pathSet = useMemo(() => new Set(pathCells ?? []), [pathCells]);
+  const frontierSet = useMemo(() => new Set(frontierCells ?? []), [frontierCells]);
   const currentKey = snapshot?.currentCell
     ? cellKey(snapshot.currentCell.row, snapshot.currentCell.col)
     : null;
 
+  // Event-delegated pointer handlers avoid creating closures per cell
   const handlePointerDown = useCallback(
-    (row: number, col: number, e: React.PointerEvent) => {
+    (e: React.PointerEvent) => {
       if (disabled) return;
+      const pos = cellFromEvent(e);
+      if (!pos) return;
       e.preventDefault();
       isDrawingRef.current = true;
 
-      const cell = grid[row]?.[col];
+      const cell = grid[pos.row]?.[pos.col];
       if (!cell) return;
 
       if (cell.isStart) {
@@ -50,21 +66,23 @@ export function GridVisualizer({
         modeRef.current = "end";
       } else {
         modeRef.current = "wall";
-        onToggleWall(row, col);
+        onToggleWall(pos.row, pos.col);
       }
     },
     [disabled, grid, onToggleWall],
   );
 
   const handlePointerEnter = useCallback(
-    (row: number, col: number) => {
+    (e: React.PointerEvent) => {
       if (!isDrawingRef.current || disabled) return;
+      const pos = cellFromEvent(e);
+      if (!pos) return;
       if (modeRef.current === "start") {
-        onSetStart(row, col);
+        onSetStart(pos.row, pos.col);
       } else if (modeRef.current === "end") {
-        onSetEnd(row, col);
+        onSetEnd(pos.row, pos.col);
       } else {
-        onToggleWall(row, col);
+        onToggleWall(pos.row, pos.col);
       }
     },
     [disabled, onToggleWall, onSetStart, onSetEnd],
@@ -75,8 +93,8 @@ export function GridVisualizer({
   }, []);
 
   return (
-    <div
-      className="h-full w-full overflow-auto"
+    <ScrollArea
+      className="h-full w-full"
       onPointerUp={handlePointerUp}
       onPointerLeave={handlePointerUp}
     >
@@ -85,8 +103,10 @@ export function GridVisualizer({
         style={{
           gridTemplateColumns: `repeat(${grid[0]?.length ?? 0}, ${cellSize}px)`,
           gridTemplateRows: `repeat(${grid.length}, ${cellSize}px)`,
-          gap: "1px",
+          gap: GRID_GAP,
         }}
+        onPointerDown={handlePointerDown}
+        onPointerOver={handlePointerEnter}
       >
         {grid.map((row, r) =>
           row.map((cell, c) => {
@@ -99,6 +119,8 @@ export function GridVisualizer({
             return (
               <div
                 key={key}
+                data-row={r}
+                data-col={c}
                 className={cn(
                   "transition-colors duration-75",
                   cell.isStart && "bg-algo-green",
@@ -111,13 +133,11 @@ export function GridVisualizer({
                   !cell.isWall && !cell.isStart && !cell.isEnd && !isVisited && !isPath && !isCurrent && !isFrontier && "bg-card",
                 )}
                 style={{ width: cellSize, height: cellSize }}
-                onPointerDown={(e) => handlePointerDown(r, c, e)}
-                onPointerEnter={() => handlePointerEnter(r, c)}
               />
             );
           }),
         )}
       </div>
-    </div>
+    </ScrollArea>
   );
 }

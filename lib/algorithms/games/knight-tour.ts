@@ -1,4 +1,4 @@
-import type { BoardCell, GamesSnapshot, KnightStats } from "@/lib/types/games";
+import type { BoardCell, GamesSnapshot, KnightStats } from "@/lib/types";
 
 /* ── Knight's Tour (Warnsdorff's Heuristic) ────────────────────── */
 
@@ -45,7 +45,6 @@ export function* knightTour(
     };
   };
 
-  // Start from chosen position
   board[startRow][startCol].value = 1;
   board[startRow][startCol].status = "placed";
   squaresVisited = 1;
@@ -54,7 +53,7 @@ export function* knightTour(
   function* solve(row: number, col: number, moveNum: number): Generator<GamesSnapshot, boolean> {
     if (moveNum > n * n) return true;
 
-    // Get valid moves sorted by Warnsdorff degree (fewest onward moves first)
+    // Warnsdorff's heuristic: prefer cells with fewer onward moves to reduce backtracking
     const validMoves = MOVES
       .map(([dr, dc]) => ({ r: row + dr, c: col + dc }))
       .filter(
@@ -81,7 +80,6 @@ export function* knightTour(
       const solved: boolean = yield* solve(move.r, move.c, moveNum + 1);
       if (solved) return true;
 
-      // Backtrack
       board[move.r][move.c].value = 0;
       board[move.r][move.c].status = "empty";
       squaresVisited--;
@@ -94,7 +92,6 @@ export function* knightTour(
 
   yield* solve(startRow, startCol, 2);
 
-  // Mark all as placed when done
   for (const row of board) {
     for (const cell of row) {
       if (cell.value > 0) cell.status = "placed";

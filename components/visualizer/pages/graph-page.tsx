@@ -1,16 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useRef } from "react";
-import type { Algorithm } from "@/config/algorithms";
-import { useGraphMachine } from "@/lib/hooks/useGraphMachine";
-import { getGraphAlgorithm } from "@/lib/algorithms/registry";
-import { VisualizerPanel } from "@/components/common/visualizer-panel";
-import { GraphVisualizer } from "@/components/shortest-path/graph-visualizer";
-import { GraphControlPanel } from "@/components/shortest-path/graph-control-panel";
-import { GraphStatsPanel } from "@/components/shortest-path/graph-stats-panel";
-import { DistanceMatrix } from "@/components/shortest-path/distance-matrix";
-import { AlgoInfoSection } from "@/components/visualizer/algo-info-section";
-import type { GraphSnapshot } from "@/lib/types/graph";
+import { useCallback } from "react";
+import type { Algorithm } from "@/config";
+import { useGraphMachine, useAnimationLoop, useMachineHandlers } from "@/lib/hooks";
+import { getAlgorithm } from "@/lib/algorithms";
+import { VisualizerPanel } from "@/components/common";
+import { GraphVisualizer, GraphControlPanel, GraphStatsPanel, DistanceMatrix } from "@/components/shortest-path";
+import { AlgoInfoSection } from "../algo-info-section";
+import type { GraphSnapshot, GraphAlgorithmFn } from "@/lib/types";
 
 interface GraphPageProps {
   algoId: string;
@@ -18,15 +15,11 @@ interface GraphPageProps {
 }
 
 export function GraphPage({ algoId, algorithm }: GraphPageProps) {
-  const { snapshot, send } = useGraphMachine(algoId);
+  const { snapshot, send, state } = useGraphMachine(algoId);
 
-  const generatorRef = useRef<Generator<GraphSnapshot> | null>(null);
-  const rafRef = useRef<number>(0);
-  const cancelledRef = useRef(false);
-
-  const isRunning = snapshot.matches("running");
-  const isStepping = snapshot.matches("stepping");
-  const isDone = snapshot.matches("done");
+  const isRunning = state === "running";
+  const isStepping = state === "stepping";
+  const isDone = state === "done";
   const nodes = snapshot.context.nodes;
   const edges = snapshot.context.edges;
   const speed = snapshot.context.speed;
@@ -35,69 +28,45 @@ export function GraphPage({ algoId, algorithm }: GraphPageProps) {
   const graphSnapshot = snapshot.context.snapshot;
   const sourceNode = snapshot.context.sourceNode;
 
-  const stopLoop = useCallback(() => {
-    cancelledRef.current = true;
-    if (rafRef.current) { cancelAnimationFrame(rafRef.current); rafRef.current = 0; }
-  }, []);
-
-  const runStep = useCallback((): GraphSnapshot | null => {
-    if (!generatorRef.current) return null;
-    const next = generatorRef.current.next();
-    if (next.done) { generatorRef.current = null; return null; }
-    return next.value;
-  }, []);
-
-  const startGenerator = useCallback(() => {
-    const algoFn = getGraphAlgorithm(algoId);
-    if (!algoFn || sourceNode === null) return;
-    generatorRef.current = algoFn([...nodes], [...edges], sourceNode);
+  const createGenerator = useCallback(() => {
+    const algoFn = getAlgorithm<GraphAlgorithmFn>("shortest-path", algoId);
+    if (!algoFn || sourceNode === null) return null;
+    return algoFn([...nodes], [...edges], sourceNode);
   }, [algoId, nodes, edges, sourceNode]);
 
-  useEffect(() => {
-    if (!isRunning) return;
-    if (!generatorRef.current) startGenerator();
-    cancelledRef.current = false;
-    let lastTime = 0;
-    const msPerFrame = 1000 / speed;
-    const tick = (timestamp: number) => {
-      if (cancelledRef.current) return;
-      if (timestamp - lastTime >= msPerFrame) {
-        lastTime = timestamp;
-        const step = runStep();
-        if (step) send({ type: "updateSnapshot", snapshot: step });
-        else { send({ type: "done" }); return; }
-      }
-      rafRef.current = requestAnimationFrame(tick);
-    };
-    rafRef.current = requestAnimationFrame(tick);
-    return () => stopLoop();
-  }, [isRunning, speed, send, runStep, startGenerator, stopLoop]);
+  const onSnapshot = useCallback(
+    (step: GraphSnapshot) => send({ type: "updateSnapshot", snapshot: step }),
+    [send],
+  );
+  const onDone = useCallback(() => send({ type: "done" }), [send]);
 
-  useEffect(() => {
-    if (!isStepping) return;
-    if (!generatorRef.current) startGenerator();
-    const step = runStep();
-    if (step) send({ type: "updateSnapshot", snapshot: step });
-    else send({ type: "done" });
-  }, [isStepping, send, runStep, startGenerator]);
+  const { clearLoop } = useAnimationLoop({
+    isRunning,
+    isStepping,
+    isIdle: state === "idle",
+    speed,
+    createGenerator,
+    onSnapshot,
+    onDone,
+  });
 
-  useEffect(() => {
-    if (snapshot.matches("idle") && generatorRef.current) {
-      stopLoop();
-      generatorRef.current = null;
-    }
-  }, [snapshot, stopLoop]);
+  const { onPlay, onPause, onStep, onReset, onSpeedChange } = useMachineHandlers(send, clearLoop);
+  const onNodeCountChange = useCallback((c: number) => { clearLoop(); send({ type: "nodeCountChange", count: c }); }, [clearLoop, send]);
+  const onGenerate = useCallback(() => { clearLoop(); send({ type: "generate" }); }, [clearLoop, send]);
+  const onNodeClick = useCallback((id: number) => {
+    if (!isRunning) send({ type: "setSource", nodeId: id });
+  }, [isRunning, send]);
 
   return (
     <div className="space-y-2">
       <GraphControlPanel
-        onPlay={() => send({ type: "play" })}
-        onPause={() => send({ type: "pause" })}
-        onStep={() => send({ type: "step" })}
-        onReset={() => { stopLoop(); generatorRef.current = null; send({ type: "reset" }); }}
-        onSpeedChange={(s) => send({ type: "speedChange", speed: s })}
-        onNodeCountChange={(c) => { stopLoop(); generatorRef.current = null; send({ type: "nodeCountChange", count: c }); }}
-        onGenerate={() => { stopLoop(); generatorRef.current = null; send({ type: "generate" }); }}
+        onPlay={onPlay}
+        onPause={onPause}
+        onStep={onStep}
+        onReset={onReset}
+        onSpeedChange={onSpeedChange}
+        onNodeCountChange={onNodeCountChange}
+        onGenerate={onGenerate}
         isRunning={isRunning}
         isDone={isDone}
         speed={speed}
@@ -109,12 +78,10 @@ export function GraphPage({ algoId, algorithm }: GraphPageProps) {
           edges={edges}
           snapshot={graphSnapshot}
           sourceNode={sourceNode}
-          onNodeClick={(id) => {
-            if (!isRunning) send({ type: "setSource", nodeId: id });
-          }}
+          onNodeClick={onNodeClick}
         />
       </VisualizerPanel>
-      <p className="px-2 text-[10px] font-space uppercase tracking-wider text-muted-foreground">
+      <p className="px-2 text-2xs font-space uppercase tracking-wider text-muted-foreground">
         Tip: click a node to set the source
       </p>
       <GraphStatsPanel

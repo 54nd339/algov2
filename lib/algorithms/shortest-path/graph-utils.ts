@@ -1,4 +1,4 @@
-import type { GraphNode, GraphEdge } from "@/lib/types/graph";
+import type { GraphNode, GraphEdge, GraphStats } from "@/lib/types";
 
 /* ── Graph generation ───────────────────────────────────────────────── */
 
@@ -13,7 +13,6 @@ export function generateRandomGraph(
   const usableWidth = width - padding * 2;
   const usableHeight = height - padding * 2;
 
-  // Arrange nodes in a grid: 2 rows, distribute columns
   const rows = Math.min(2, count);
   const cols = Math.ceil(count / rows);
   const cellWidth = usableWidth / cols;
@@ -29,7 +28,6 @@ export function generateRandomGraph(
     });
   }
 
-  // Connect each node to its k nearest neighbors (undirected, no duplicates)
   const k = Math.min(3, count - 1);
   const edgeSet = new Set<string>();
   const edges: GraphEdge[] = [];
@@ -64,7 +62,7 @@ export function generateRandomGraph(
 
 /* ── Adjacency list ─────────────────────────────────────────────────── */
 
-export type AdjEntry = { to: number; weight: number; edgeId: string };
+type AdjEntry = { to: number; weight: number; edgeId: string };
 
 export function buildAdjacencyList(
   nodes: GraphNode[],
@@ -83,4 +81,11 @@ export function buildAdjacencyList(
 
 export function edgeId(u: number, v: number): string {
   return u < v ? `${u}-${v}` : `${v}-${u}`;
+}
+
+/* ── Shared stat builder ───────────────────────────────────────────── */
+
+/** All three shortest-path algorithms emit the same stat shape; centralised here to stay DRY. */
+export function makeGraphStats(visited: number, relaxed: number, dist: number): GraphStats {
+  return { nodesVisited: visited, edgesRelaxed: relaxed, totalDistance: dist, timeElapsed: 0 };
 }

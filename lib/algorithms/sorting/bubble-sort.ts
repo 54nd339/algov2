@@ -1,4 +1,4 @@
-import type { AlgorithmSnapshot, AlgorithmStats } from "@/lib/types/algorithms";
+import type { AlgorithmSnapshot, AlgorithmStats } from "@/lib/types";
 
 export function* bubbleSort(array: number[]) {
   const result = [...array];
@@ -40,6 +40,7 @@ export function* bubbleSort(array: number[]) {
         yield {
           array: [...result],
           comparing: [j, j + 1],
+          swapping: [j, j + 1],
           stats: swapStats,
         } as AlgorithmSnapshot;
       }

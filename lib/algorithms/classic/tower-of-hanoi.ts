@@ -1,4 +1,4 @@
-import type { ClassicSnapshot, HanoiPeg, HanoiDisc } from "@/lib/types/classic";
+import type { ClassicSnapshot, HanoiPeg, HanoiDisc } from "@/lib/types";
 
 /* ── Tower of Hanoi (Recursive) ──────────────────────────────────── */
 
@@ -27,7 +27,7 @@ export function* towerOfHanoi(n: number): Generator<ClassicSnapshot> {
   let movesMade = 0;
   const startTime = performance.now();
 
-  /* initial state */
+  /* Yield starting configuration so the UI can render before any moves */
   yield {
     type: "tower-of-hanoi",
     data: {
@@ -49,7 +49,6 @@ export function* towerOfHanoi(n: number): Generator<ClassicSnapshot> {
 
     yield* move(count - 1, from, aux, to);
 
-    /* perform the actual move */
     const disc = pegs[from].discs.shift()!;
     pegs[to].discs.unshift(disc);
     movesMade++;

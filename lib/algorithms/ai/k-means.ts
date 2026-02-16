@@ -1,4 +1,4 @@
-import type { DataPoint, AISnapshot, KMeansStats } from "@/lib/types/ai";
+import type { DataPoint, AISnapshot, KMeansStats } from "@/lib/types";
 
 /* ── K-Means Clustering ─────────────────────────────────────────── */
 
@@ -10,7 +10,6 @@ export function* kMeans(
   const startTime = performance.now();
   const maxIterations = 50;
 
-  // Initialize centroids randomly from data points
   const shuffled = [...points].sort(() => Math.random() - 0.5);
   const centroids: DataPoint[] = shuffled.slice(0, k).map((p, i) => ({
     x: p.x,
@@ -51,7 +50,6 @@ export function* kMeans(
   yield snap(0);
 
   for (iteration = 1; iteration <= maxIterations; iteration++) {
-    // Assign each point to nearest centroid
     const newAssignments = points.map((p) => {
       let bestDist = Infinity;
       let bestCluster = 0;
@@ -68,7 +66,6 @@ export function* kMeans(
 
     yield snap(0);
 
-    // Recalculate centroids
     let convergedCount = 0;
     for (let c = 0; c < k; c++) {
       const members = points.filter((_, i) => assignments[i] === c);
@@ -83,7 +80,6 @@ export function* kMeans(
 
     yield snap(convergedCount);
 
-    // Converged
     if (convergedCount === k) break;
   }
 

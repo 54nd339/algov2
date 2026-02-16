@@ -1,4 +1,4 @@
-import type { DataPoint, AISnapshot, RegressionStats } from "@/lib/types/ai";
+import type { DataPoint, AISnapshot, RegressionStats } from "@/lib/types";
 
 /* ── Linear Regression via Gradient Descent ─────────────────────── */
 
@@ -69,7 +69,7 @@ export function* linearRegression(
     const currentR2 = calcR2();
     yield snap(epoch);
 
-    // Early stop when R² is stable for 10 consecutive epochs
+    // Avoid wasted epochs once the model has converged
     if (Math.abs(currentR2 - prevR2) < 0.0005) {
       stableCount++;
       if (stableCount >= 10) break;

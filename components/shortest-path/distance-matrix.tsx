@@ -1,7 +1,6 @@
-"use client";
-
-import type { GraphNode } from "@/lib/types/graph";
-import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import { useMemo } from "react";
+import type { GraphNode } from "@/lib/types";
+import { ScrollArea, ScrollBar } from "@/components/ui";
 
 interface DistanceMatrixProps {
   allDistances: Record<number, Record<number, number>>;
@@ -9,7 +8,10 @@ interface DistanceMatrixProps {
 }
 
 export function DistanceMatrix({ allDistances, nodes }: DistanceMatrixProps) {
-  const sortedIds = [...nodes].sort((a, b) => a.id - b.id).map((n) => n.id);
+  const sortedIds = useMemo(
+    () => [...nodes].sort((a, b) => a.id - b.id).map((n) => n.id),
+    [nodes],
+  );
 
   return (
     <div className="border border-border bg-card">

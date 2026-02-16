@@ -1,15 +1,14 @@
 "use client";
 
-import { useCallback, useEffect, useRef } from "react";
-import type { Algorithm } from "@/config/algorithms";
-import { useAIMachine } from "@/lib/hooks/useAIMachine";
-import { getAIAlgorithm } from "@/lib/algorithms/registry";
-import { VisualizerPanel } from "@/components/common/visualizer-panel";
-import { AIVisualizer } from "@/components/ai/ai-visualizer";
-import { AIControlPanel } from "@/components/ai/ai-control-panel";
-import { AIStatsPanel } from "@/components/ai/ai-stats-panel";
-import { AlgoInfoSection } from "@/components/visualizer/algo-info-section";
-import type { AISnapshot, DataPoint } from "@/lib/types/ai";
+import { useCallback } from "react";
+import type { Algorithm } from "@/config";
+import { useAIMachine, useAnimationLoop, useMachineHandlers } from "@/lib/hooks";
+import { getAlgorithm } from "@/lib/algorithms";
+import { VisualizerPanel } from "@/components/common";
+import { AIVisualizer, AIControlPanel, AIStatsPanel } from "@/components/ai";
+import { AlgoInfoSection } from "../algo-info-section";
+import type { AISnapshot, DataPoint, AIAlgorithmFn } from "@/lib/types";
+import { assignLabel } from "@/lib/algorithms/ai";
 
 interface AIPageProps {
   algoId: string;
@@ -17,99 +16,69 @@ interface AIPageProps {
 }
 
 export function AIPage({ algoId, algorithm }: AIPageProps) {
-  const { snapshot, send } = useAIMachine(algoId);
+  const { snapshot, send, state } = useAIMachine(algoId);
 
-  const generatorRef = useRef<Generator<AISnapshot> | null>(null);
-  const rafRef = useRef<number>(0);
-  const cancelledRef = useRef(false);
-
-  const isRunning = snapshot.matches("running");
-  const isStepping = snapshot.matches("stepping");
-  const isDone = snapshot.matches("done");
+  const isRunning = state === "running";
+  const isStepping = state === "stepping";
+  const isDone = state === "done";
   const dataPoints = snapshot.context.dataPoints;
   const speed = snapshot.context.speed;
   const pointCount = snapshot.context.pointCount;
   const aiSnapshot = snapshot.context.snapshot;
 
-  const stopLoop = useCallback(() => {
-    cancelledRef.current = true;
-    if (rafRef.current) { cancelAnimationFrame(rafRef.current); rafRef.current = 0; }
-  }, []);
-
-  const runStep = useCallback((): AISnapshot | null => {
-    if (!generatorRef.current) return null;
-    const next = generatorRef.current.next();
-    if (next.done) { generatorRef.current = null; return null; }
-    return next.value;
-  }, []);
-
-  const startGenerator = useCallback(() => {
-    const algoFn = getAIAlgorithm(algoId);
-    if (!algoFn) return;
-    generatorRef.current = algoFn([...dataPoints.map((p) => ({ ...p }))], {
+  const createGenerator = useCallback(() => {
+    const algoFn = getAlgorithm<AIAlgorithmFn>("ai", algoId);
+    if (!algoFn) return null;
+    return algoFn([...dataPoints.map((p: DataPoint) => ({ ...p }))], {
       k: snapshot.context.k,
       learningRate: snapshot.context.learningRate,
     });
   }, [algoId, dataPoints, snapshot.context.k, snapshot.context.learningRate]);
 
-  useEffect(() => {
-    if (!isRunning) return;
-    if (!generatorRef.current) startGenerator();
-    cancelledRef.current = false;
-    let lastTime = 0;
-    const msPerFrame = 1000 / speed;
-    const tick = (timestamp: number) => {
-      if (cancelledRef.current) return;
-      if (timestamp - lastTime >= msPerFrame) {
-        lastTime = timestamp;
-        const step = runStep();
-        if (step) send({ type: "updateSnapshot", snapshot: step });
-        else { send({ type: "done" }); return; }
-      }
-      rafRef.current = requestAnimationFrame(tick);
-    };
-    rafRef.current = requestAnimationFrame(tick);
-    return () => stopLoop();
-  }, [isRunning, speed, send, runStep, startGenerator, stopLoop]);
+  const onSnapshot = useCallback(
+    (step: AISnapshot) => send({ type: "updateSnapshot", snapshot: step }),
+    [send],
+  );
+  const onDone = useCallback(() => send({ type: "done" }), [send]);
 
-  useEffect(() => {
-    if (!isStepping) return;
-    if (!generatorRef.current) startGenerator();
-    const step = runStep();
-    if (step) send({ type: "updateSnapshot", snapshot: step });
-    else send({ type: "done" });
-  }, [isStepping, send, runStep, startGenerator]);
-
-  useEffect(() => {
-    if (snapshot.matches("idle") && generatorRef.current) {
-      stopLoop();
-      generatorRef.current = null;
-    }
-  }, [snapshot, stopLoop]);
+  const { clearLoop } = useAnimationLoop({
+    isRunning,
+    isStepping,
+    isIdle: state === "idle",
+    speed,
+    createGenerator,
+    onSnapshot,
+    onDone,
+  });
 
   const handleAddPoint = useCallback(
     (point: DataPoint) => {
       if (isRunning) return;
       const nextPoint: DataPoint = {
         ...point,
-        label: algoId === "knn" ? Math.floor(Math.random() * snapshot.context.k) : undefined,
+        label: assignLabel(algoId, snapshot.context.k),
       };
       send({ type: "setPoints", points: [...dataPoints, nextPoint] });
     },
     [algoId, dataPoints, isRunning, send, snapshot.context.k],
   );
 
+  const { onPlay, onPause, onStep, onReset, onSpeedChange } = useMachineHandlers(send, clearLoop);
+  const onPointCountChange = useCallback((c: number) => { clearLoop(); send({ type: "pointCountChange", count: c }); }, [clearLoop, send]);
+  const onGenerate = useCallback(() => { clearLoop(); send({ type: "generate" }); }, [clearLoop, send]);
+  const onKChange = useCallback((k: number) => { clearLoop(); send({ type: "kChange", k }); }, [clearLoop, send]);
+
   return (
     <div className="space-y-2">
       <AIControlPanel
-        onPlay={() => send({ type: "play" })}
-        onPause={() => send({ type: "pause" })}
-        onStep={() => send({ type: "step" })}
-        onReset={() => { stopLoop(); generatorRef.current = null; send({ type: "reset" }); }}
-        onSpeedChange={(s) => send({ type: "speedChange", speed: s })}
-        onPointCountChange={(c) => { stopLoop(); generatorRef.current = null; send({ type: "pointCountChange", count: c }); }}
-        onGenerate={() => { stopLoop(); generatorRef.current = null; send({ type: "generate" }); }}
-        onKChange={(k) => { stopLoop(); generatorRef.current = null; send({ type: "kChange", k }); }}
+        onPlay={onPlay}
+        onPause={onPause}
+        onStep={onStep}
+        onReset={onReset}
+        onSpeedChange={onSpeedChange}
+        onPointCountChange={onPointCountChange}
+        onGenerate={onGenerate}
+        onKChange={onKChange}
         isRunning={isRunning}
         isDone={isDone}
         speed={speed}

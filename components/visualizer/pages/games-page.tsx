@@ -1,184 +1,90 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
-import type { Algorithm } from "@/config/algorithms";
-import { useGamesMachine } from "@/lib/hooks/useGamesMachine";
-import { getGamesAlgorithm } from "@/lib/algorithms/registry";
-import { VisualizerPanel } from "@/components/common/visualizer-panel";
-import { BoardVisualizer } from "@/components/games/board-visualizer";
-import { MinimaxVisualizer } from "@/components/games/minimax-visualizer";
-import { GamesControlPanel } from "@/components/games/games-control-panel";
-import { GamesStatsPanel } from "@/components/games/games-stats-panel";
-import { AlgoInfoSection } from "@/components/visualizer/algo-info-section";
-import type { GamesSnapshot, BoardCell, CellStatus } from "@/lib/types/games";
+import { useCallback, useState } from "react";
+import type { Algorithm } from "@/config";
+import { useGamesMachine, useAnimationLoop, useMachineHandlers, useInitialPreview } from "@/lib/hooks";
+import { getAlgorithm } from "@/lib/algorithms";
+import { VisualizerPanel } from "@/components/common";
+import { BoardVisualizer, MinimaxVisualizer, GamesControlPanel, GamesStatsPanel } from "@/components/games";
+import { AlgoInfoSection } from "../algo-info-section";
+import type { GamesSnapshot, GamesAlgorithmFn } from "@/lib/types";
+import { toggleLifeCell, setKnightStart, GAMES_SIZE_CONFIG, GAMES_VARIANT, sudokuBoxSize, buildGameOptions } from "@/lib/algorithms/games";
 
 interface GamesPageProps {
   algoId: string;
   algorithm: Algorithm;
 }
 
-const GAMES_SIZE_CONFIG: Record<string, { label: string; min: number; max: number; step: number }> = {
-  "n-queen": { label: "N", min: 4, max: 12, step: 1 },
-  "sudoku": { label: "Size", min: 4, max: 9, step: 5 },
-  "game-of-life": { label: "Grid", min: 10, max: 40, step: 2 },
-  "knight-tour": { label: "N", min: 5, max: 8, step: 1 },
-  "minimax": { label: "Depth", min: 2, max: 5, step: 1 },
-};
-
-const GAMES_VARIANT: Record<string, "queen" | "sudoku" | "life" | "knight"> = {
-  "n-queen": "queen",
-  "sudoku": "sudoku",
-  "game-of-life": "life",
-  "knight-tour": "knight",
-};
-
 export function GamesPage({ algoId, algorithm }: GamesPageProps) {
-  const { snapshot, send } = useGamesMachine(algoId);
+  const { snapshot, send, state } = useGamesMachine(algoId);
   const [branchingFactor, setBranchingFactor] = useState(3);
 
-  const generatorRef = useRef<Generator<GamesSnapshot> | null>(null);
-  const rafRef = useRef<number>(0);
-  const cancelledRef = useRef(false);
-
-  const isRunning = snapshot.matches("running");
-  const isStepping = snapshot.matches("stepping");
-  const isDone = snapshot.matches("done");
+  const isRunning = state === "running";
+  const isStepping = state === "stepping";
+  const isDone = state === "done";
   const speed = snapshot.context.speed;
   const boardSize = snapshot.context.boardSize;
   const gamesSnapshot = snapshot.context.snapshot;
 
   const sizeConfig = GAMES_SIZE_CONFIG[algoId] ?? { label: "Size", min: 4, max: 12, step: 1 };
 
-  const stopLoop = useCallback(() => {
-    cancelledRef.current = true;
-    if (rafRef.current) { cancelAnimationFrame(rafRef.current); rafRef.current = 0; }
-  }, []);
+  const createGenerator = useCallback(() => {
+    const algoFn = getAlgorithm<GamesAlgorithmFn>("games", algoId);
+    if (!algoFn) return null;
+    return algoFn(boardSize, buildGameOptions(algoId, gamesSnapshot, branchingFactor));
+  }, [algoId, boardSize, gamesSnapshot, branchingFactor]);
 
-  const runStep = useCallback((): GamesSnapshot | null => {
-    if (!generatorRef.current) return null;
-    const next = generatorRef.current.next();
-    if (next.done) { generatorRef.current = null; return null; }
-    return next.value;
-  }, []);
-
-  // Build options from current snapshot for interactive boards
-  const buildOptions = useCallback(() => {
-    const options: { initialBoard?: BoardCell[][]; startRow?: number; startCol?: number; branching?: number } = {};
-    if (algoId === "game-of-life" && gamesSnapshot?.type === "game-of-life") {
-      options.initialBoard = gamesSnapshot.data.board;
-    }
-    if (algoId === "knight-tour" && gamesSnapshot?.type === "knight-tour") {
-      options.startRow = gamesSnapshot.data.currentRow;
-      options.startCol = gamesSnapshot.data.currentCol;
-    }
-    if (algoId === "minimax") {
-      options.branching = branchingFactor;
-    }
-    return options;
-  }, [algoId, gamesSnapshot, branchingFactor]);
-
-  const startGenerator = useCallback(() => {
-    const algoFn = getGamesAlgorithm(algoId);
-    if (!algoFn) return;
-    generatorRef.current = algoFn(boardSize, buildOptions());
-  }, [algoId, boardSize, buildOptions]);
-
-  // Show initial state on mount and when size/algo changes
-  const showInitialState = useCallback(() => {
-    generatorRef.current = null;
-    const algoFn = getGamesAlgorithm(algoId);
-    if (!algoFn) return;
+  /** Preview generator uses minimal options (no board state needed). */
+  const createPreviewGenerator = useCallback(() => {
+    const algoFn = getAlgorithm<GamesAlgorithmFn>("games", algoId);
+    if (!algoFn) return null;
     const opts = algoId === "minimax" ? { branching: branchingFactor } : undefined;
-    const gen = algoFn(boardSize, opts);
-    const first = gen.next();
-    if (!first.done && first.value) {
-      generatorRef.current = gen;
-      send({ type: "updateSnapshot", snapshot: first.value });
-    }
-  }, [algoId, boardSize, send, branchingFactor]);
+    return algoFn(boardSize, opts);
+  }, [algoId, boardSize, branchingFactor]);
 
-  useEffect(() => {
-    showInitialState();
-  }, [showInitialState]);
+  const onSnapshot = useCallback(
+    (step: GamesSnapshot) => send({ type: "updateSnapshot", snapshot: step }),
+    [send],
+  );
+  const onDone = useCallback(() => send({ type: "done" }), [send]);
 
-  useEffect(() => {
-    if (!isRunning) return;
-    if (!generatorRef.current) startGenerator();
-    cancelledRef.current = false;
-    let lastTime = 0;
-    const msPerFrame = 1000 / speed;
-    const tick = (timestamp: number) => {
-      if (cancelledRef.current) return;
-      if (timestamp - lastTime >= msPerFrame) {
-        lastTime = timestamp;
-        const step = runStep();
-        if (step) send({ type: "updateSnapshot", snapshot: step });
-        else { send({ type: "done" }); return; }
-      }
-      rafRef.current = requestAnimationFrame(tick);
-    };
-    rafRef.current = requestAnimationFrame(tick);
-    return () => stopLoop();
-  }, [isRunning, speed, send, runStep, startGenerator, stopLoop]);
+  const { generatorRef, clearLoop } = useAnimationLoop({
+    isRunning,
+    isStepping,
+    isIdle: state === "idle",
+    speed,
+    createGenerator,
+    onSnapshot,
+    onDone,
+  });
 
-  useEffect(() => {
-    if (!isStepping) return;
-    if (!generatorRef.current) startGenerator();
-    const step = runStep();
-    if (step) send({ type: "updateSnapshot", snapshot: step });
-    else send({ type: "done" });
-  }, [isStepping, send, runStep, startGenerator]);
+  const showInitialState = useInitialPreview<GamesSnapshot>({
+    generatorRef,
+    send,
+    createGenerator: createPreviewGenerator,
+  });
 
-  // Interactive cell click handler (idle/paused only)
   const handleCellClick = useCallback((row: number, col: number) => {
-    if (isRunning || isDone) return;
-    if (!gamesSnapshot) return;
+    if (isRunning || isDone || !gamesSnapshot) return;
 
+    let newSnapshot: GamesSnapshot | null = null;
     if (algoId === "game-of-life" && gamesSnapshot.type === "game-of-life") {
-      const newBoard = gamesSnapshot.data.board.map((r) => r.map((c) => ({ ...c })));
-      const cell = newBoard[row][col];
-      cell.value = cell.value === 1 ? 0 : 1;
-      cell.status = cell.value === 1 ? "alive" : "dead";
-      const aliveCells = newBoard.flat().filter((c) => c.value === 1).length;
-      generatorRef.current = null;
-      send({
-        type: "updateSnapshot",
-        snapshot: {
-          type: "game-of-life",
-          data: {
-            ...gamesSnapshot.data,
-            board: newBoard,
-            stats: { ...gamesSnapshot.data.stats, aliveCells },
-          },
-        },
-      });
+      newSnapshot = toggleLifeCell(gamesSnapshot, row, col);
+    } else if (algoId === "knight-tour" && gamesSnapshot.type === "knight-tour") {
+      newSnapshot = setKnightStart(gamesSnapshot, row, col);
     }
-
-    if (algoId === "knight-tour" && gamesSnapshot.type === "knight-tour") {
-      const n = gamesSnapshot.data.board.length;
-      const newBoard = Array.from({ length: n }, (_, r) =>
-        Array.from({ length: n }, (_, c) => ({
-          row: r, col: c, value: 0, status: "empty" as CellStatus,
-        })),
-      );
-      newBoard[row][col].value = 1;
-      newBoard[row][col].status = "placed";
+    if (newSnapshot) {
       generatorRef.current = null;
-      send({
-        type: "updateSnapshot",
-        snapshot: {
-          type: "knight-tour",
-          data: {
-            ...gamesSnapshot.data,
-            board: newBoard,
-            currentRow: row,
-            currentCol: col,
-            stats: { ...gamesSnapshot.data.stats, squaresVisited: 1, backtracks: 0 },
-          },
-        },
-      });
+      send({ type: "updateSnapshot", snapshot: newSnapshot });
     }
+    // generatorRef is a stable ref — intentionally excluded from deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [algoId, gamesSnapshot, isRunning, isDone, send]);
+
+  const { onPlay, onPause, onStep, onSpeedChange } = useMachineHandlers(send, clearLoop);
+  const onGamesReset = useCallback(() => { clearLoop(); send({ type: "reset" }); showInitialState(); }, [clearLoop, send, showInitialState]);
+  const onBoardSizeChange = useCallback((s: number) => { clearLoop(); send({ type: "boardSizeChange", size: s }); }, [clearLoop, send]);
+  const onBranchingChange = useCallback((b: number) => { clearLoop(); setBranchingFactor(b); }, [clearLoop]);
 
   const isMinimax = algoId === "minimax";
   const hideGenerate = algoId === "n-queen" || algoId === "knight-tour";
@@ -186,13 +92,13 @@ export function GamesPage({ algoId, algorithm }: GamesPageProps) {
   return (
     <div className="space-y-2">
       <GamesControlPanel
-        onPlay={() => send({ type: "play" })}
-        onPause={() => send({ type: "pause" })}
-        onStep={() => send({ type: "step" })}
-        onReset={() => { stopLoop(); generatorRef.current = null; send({ type: "reset" }); showInitialState(); }}
-        onSpeedChange={(s) => send({ type: "speedChange", speed: s })}
-        onBoardSizeChange={(s) => { stopLoop(); generatorRef.current = null; send({ type: "boardSizeChange", size: s }); }}
-        onGenerate={() => { stopLoop(); send({ type: "reset" }); showInitialState(); }}
+        onPlay={onPlay}
+        onPause={onPause}
+        onStep={onStep}
+        onReset={onGamesReset}
+        onSpeedChange={onSpeedChange}
+        onBoardSizeChange={onBoardSizeChange}
+        onGenerate={onGamesReset}
         isRunning={isRunning}
         isDone={isDone}
         speed={speed}
@@ -202,7 +108,7 @@ export function GamesPage({ algoId, algorithm }: GamesPageProps) {
         sizeMax={sizeConfig.max}
         sizeStep={sizeConfig.step}
         branchingFactor={branchingFactor}
-        onBranchingChange={(b) => { stopLoop(); generatorRef.current = null; setBranchingFactor(b); }}
+        onBranchingChange={onBranchingChange}
         showBranching={isMinimax}
         showGenerate={!hideGenerate}
       />
@@ -219,7 +125,7 @@ export function GamesPage({ algoId, algorithm }: GamesPageProps) {
                 : null
             }
             variant={GAMES_VARIANT[algoId] ?? "queen"}
-            boxSize={algoId === "sudoku" ? Math.floor(Math.sqrt(boardSize)) : undefined}
+            boxSize={sudokuBoxSize(algoId, boardSize)}
             onCellClick={!isRunning && !isDone ? handleCellClick : undefined}
           />
         )}

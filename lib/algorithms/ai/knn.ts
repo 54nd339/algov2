@@ -1,4 +1,4 @@
-import type { DataPoint, AISnapshot, KNNStats } from "@/lib/types/ai";
+import type { DataPoint, AISnapshot, KNNStats } from "@/lib/types";
 
 /* ── K-Nearest Neighbors ────────────────────────────────────────── */
 // Splits labeled data into train/test, classifies test points using
@@ -16,13 +16,12 @@ export function* knn(
 
   const labeled = points.filter((p) => p.label !== undefined);
 
-  // Shuffle and split into train (80%) / test (20%)
   const shuffled = [...labeled].sort(() => Math.random() - 0.5);
   const splitIdx = Math.max(Math.floor(shuffled.length * 0.8), k + 1);
   const train = shuffled.slice(0, splitIdx);
   const test = shuffled.slice(splitIdx).map((p) => ({ ...p }));
 
-  // If not enough test points, generate some with ground-truth labels
+  // Ensure enough test points exist for a meaningful visualization
   if (test.length < 5) {
     const classes = new Map<number, { sx: number; sy: number; n: number }>();
     for (const p of train) {
@@ -82,7 +81,6 @@ export function* knn(
   yield snap(null, []);
 
   for (const tp of test) {
-    // Calculate distances to training points only
     const dists = train.map((p, i) => {
       distancesCalculated++;
       return { index: i, dist: Math.hypot(p.x - tp.x, p.y - tp.y) };
@@ -93,7 +91,6 @@ export function* knn(
 
     yield snap(tp, kNearest);
 
-    // Majority vote from training labels
     const votes: Record<number, number> = {};
     for (const idx of kNearest) {
       const label = train[idx].label ?? 0;
@@ -105,7 +102,6 @@ export function* knn(
     tp.predicted = predicted;
     pointsClassified++;
 
-    // Track accuracy against true label
     if (tp.label !== undefined && tp.label === predicted) correct++;
 
     yield snap(tp, kNearest);

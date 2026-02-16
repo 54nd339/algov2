@@ -1,4 +1,4 @@
-import type { DataPoint } from "@/lib/types/ai";
+import type { DataPoint } from "@/lib/types";
 
 /** Generate linearly distributed points with noise for regression */
 export function generateRegressionData(count: number): DataPoint[] {

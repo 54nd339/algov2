@@ -1,22 +1,39 @@
-"use client";
-
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { use } from "react";
-import { findAlgorithm, findCategory, type Algorithm } from "@/config/algorithms";
-import { ArrayPage } from "@/components/visualizer/pages/array-page";
-import { PathfindingPage } from "@/components/visualizer/pages/pathfinding-page";
-import { GraphPage } from "@/components/visualizer/pages/graph-page";
-import { MSTPage } from "@/components/visualizer/pages/mst-page";
-import { AIPage } from "@/components/visualizer/pages/ai-page";
-import { GamesPage } from "@/components/visualizer/pages/games-page";
-import { ClassicPage } from "@/components/visualizer/pages/classic-page";
+import { findAlgorithm, findCategory } from "@/config";
+import {
+  ArrayPage,
+  PathfindingPage,
+  GraphPage,
+  MSTPage,
+  AIPage,
+  GamesPage,
+  ClassicPage,
+  PerceptronPage,
+} from "@/components/visualizer/pages";
 
 interface AlgoPageProps {
   params: Promise<{ category: string; algo: string }>;
 }
 
-export default function AlgoPage({ params }: AlgoPageProps) {
-  const { category: categoryId, algo: algoId } = use(params);
+export async function generateMetadata({ params }: AlgoPageProps): Promise<Metadata> {
+  const { category, algo } = await params;
+  const algorithm = findAlgorithm(category, algo);
+  if (!algorithm) return {};
+  return {
+    title: algorithm.name,
+    description: algorithm.description,
+    openGraph: {
+      title: `${algorithm.name} | AlgoViz`,
+      description: algorithm.description,
+      url: `/${category}/${algo}`,
+      siteName: "AlgoViz",
+    },
+  };
+}
+
+export default async function AlgoPage({ params }: AlgoPageProps) {
+  const { category: categoryId, algo: algoId } = await params;
 
   const category = findCategory(categoryId);
   const algorithm = findAlgorithm(categoryId, algoId);
@@ -25,37 +42,38 @@ export default function AlgoPage({ params }: AlgoPageProps) {
     notFound();
   }
 
-  const resolved = algorithm as Algorithm;
-
   if (categoryId === "path-finding") {
-    return <PathfindingPage algoId={algoId} algorithm={resolved} />;
+    return <PathfindingPage algoId={algoId} algorithm={algorithm} />;
   }
 
   if (categoryId === "shortest-path") {
-    return <GraphPage algoId={algoId} algorithm={resolved} />;
+    return <GraphPage algoId={algoId} algorithm={algorithm} />;
   }
 
   if (categoryId === "mst") {
-    return <MSTPage algoId={algoId} algorithm={resolved} />;
+    return <MSTPage algoId={algoId} algorithm={algorithm} />;
   }
 
   if (categoryId === "ai") {
-    return <AIPage algoId={algoId} algorithm={resolved} />;
+    if (algoId === "perceptron") {
+      return <PerceptronPage algoId={algoId} algorithm={algorithm} />;
+    }
+    return <AIPage algoId={algoId} algorithm={algorithm} />;
   }
 
   if (categoryId === "games") {
-    return <GamesPage algoId={algoId} algorithm={resolved} />;
+    return <GamesPage algoId={algoId} algorithm={algorithm} />;
   }
 
   if (categoryId === "classic") {
-    return <ClassicPage algoId={algoId} algorithm={resolved} />;
+    return <ClassicPage algoId={algoId} algorithm={algorithm} />;
   }
 
   return (
     <ArrayPage
       categoryId={categoryId as "sorting" | "searching"}
       algoId={algoId}
-      algorithm={resolved}
+      algorithm={algorithm}
     />
   );
 }

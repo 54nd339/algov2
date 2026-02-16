@@ -1,12 +1,9 @@
 import { assign, setup } from "xstate";
-import type { MSTContext, MSTEvent, MSTSnapshot, MSTStats } from "@/lib/types/mst";
-import { generateRandomGraph } from "@/lib/algorithms/shortest-path/graph-utils";
+import type { MSTContext, MSTEvent, MSTSnapshot, MSTStats } from "@/lib/types";
+import { generateRandomGraph } from "@/lib/algorithms/shortest-path";
+import { visualizerStates } from "./visualizer-machine";
 
 const DEFAULT_NODE_COUNT = 8;
-
-function makeInitialGraph(count: number) {
-  return generateRandomGraph(count);
-}
 
 const resetStats = (): MSTStats => ({
   edgesInMST: 0,
@@ -16,13 +13,34 @@ const resetStats = (): MSTStats => ({
 });
 
 export function createMSTMachine(algorithmId: string) {
-  const initial = makeInitialGraph(DEFAULT_NODE_COUNT);
+  const initial = generateRandomGraph(DEFAULT_NODE_COUNT);
+
+  const regenerate = (ctx: any) => {
+    const g = generateRandomGraph(ctx.nodeCount);
+    return {
+      nodes: g.nodes,
+      edges: g.edges,
+      sourceNode: 0,
+      stats: resetStats(),
+      stepIndex: 0,
+      snapshot: null,
+    };
+  };
+
+  /* Mid-play reset regenerates graph but preserves sourceNode selection */
+  const playReset = (ctx: any) => {
+    const g = generateRandomGraph(ctx.nodeCount);
+    return {
+      nodes: g.nodes,
+      edges: g.edges,
+      stats: resetStats(),
+      stepIndex: 0,
+      snapshot: null,
+    };
+  };
 
   return setup({
-    types: {
-      context: {} as MSTContext,
-      events: {} as MSTEvent,
-    },
+    types: { context: {} as MSTContext, events: {} as MSTEvent },
   }).createMachine({
     id: `mst-${algorithmId}`,
     initial: "idle",
@@ -45,7 +63,7 @@ export function createMSTMachine(algorithmId: string) {
       nodeCountChange: {
         actions: assign(({ event }) => {
           const count = "count" in event ? event.count : DEFAULT_NODE_COUNT;
-          const g = makeInitialGraph(count);
+          const g = generateRandomGraph(count);
           return {
             nodeCount: count,
             nodes: g.nodes,
@@ -57,153 +75,24 @@ export function createMSTMachine(algorithmId: string) {
           };
         }),
       },
-      generate: {
-        actions: assign(({ context }) => {
-          const g = makeInitialGraph(context.nodeCount);
-          return {
-            nodes: g.nodes,
-            edges: g.edges,
-            sourceNode: 0,
-            stats: resetStats(),
-            stepIndex: 0,
-            snapshot: null,
-          };
-        }),
-      },
+      generate: { actions: assign(({ context }) => regenerate(context)) },
       setSource: {
         actions: assign({
           sourceNode: ({ event }) => ("nodeId" in event ? event.nodeId : 0),
         }),
       },
     },
-    states: {
-      idle: {
-        on: {
-          play: "running",
-          step: "stepping",
-          reset: {
-            actions: assign(({ context }) => {
-              const g = makeInitialGraph(context.nodeCount);
-              return {
-                nodes: g.nodes,
-                edges: g.edges,
-                stats: resetStats(),
-                stepIndex: 0,
-                snapshot: null,
-              };
-            }),
-          },
-        },
-      },
-      running: {
-        on: {
-          pause: "paused",
-          reset: {
-            target: "idle",
-            actions: assign(({ context }) => {
-              const g = makeInitialGraph(context.nodeCount);
-              return {
-                nodes: g.nodes,
-                edges: g.edges,
-                stats: resetStats(),
-                stepIndex: 0,
-                snapshot: null,
-              };
-            }),
-          },
-          updateSnapshot: {
-            actions: assign({
-              snapshot: ({ event }) =>
-                "snapshot" in event ? (event.snapshot as MSTSnapshot) : null,
-              stats: ({ event, context }) =>
-                "snapshot" in event && event.snapshot
-                  ? (event.snapshot as MSTSnapshot).stats
-                  : context.stats,
-              stepIndex: ({ context }) => context.stepIndex + 1,
-            }),
-          },
-          done: "done",
-        },
-      },
-      paused: {
-        on: {
-          play: "running",
-          step: "stepping",
-          reset: {
-            target: "idle",
-            actions: assign(({ context }) => {
-              const g = makeInitialGraph(context.nodeCount);
-              return {
-                nodes: g.nodes,
-                edges: g.edges,
-                stats: resetStats(),
-                stepIndex: 0,
-                snapshot: null,
-              };
-            }),
-          },
-        },
-      },
-      stepping: {
-        on: {
-          updateSnapshot: {
-            target: "paused",
-            actions: assign({
-              snapshot: ({ event }) =>
-                "snapshot" in event ? (event.snapshot as MSTSnapshot) : null,
-              stats: ({ event, context }) =>
-                "snapshot" in event && event.snapshot
-                  ? (event.snapshot as MSTSnapshot).stats
-                  : context.stats,
-              stepIndex: ({ context }) => context.stepIndex + 1,
-            }),
-          },
-          play: "running",
-          reset: {
-            target: "idle",
-            actions: assign(({ context }) => {
-              const g = makeInitialGraph(context.nodeCount);
-              return {
-                nodes: g.nodes,
-                edges: g.edges,
-                stats: resetStats(),
-                stepIndex: 0,
-                snapshot: null,
-              };
-            }),
-          },
-        },
-      },
-      done: {
-        on: {
-          reset: {
-            target: "idle",
-            actions: assign(({ context }) => {
-              const g = makeInitialGraph(context.nodeCount);
-              return {
-                nodes: g.nodes,
-                edges: g.edges,
-                stats: resetStats(),
-                stepIndex: 0,
-                snapshot: null,
-              };
-            }),
-          },
-          generate: {
-            target: "idle",
-            actions: assign(({ context }) => {
-              const g = makeInitialGraph(context.nodeCount);
-              return {
-                nodes: g.nodes,
-                edges: g.edges,
-                stats: resetStats(),
-                stepIndex: 0,
-                snapshot: null,
-              };
-            }),
-          },
-        },
-      },
-    },
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- visualizerStates returns a generic shape; XState's createMachine types can't infer the concrete state config
+    states: visualizerStates({
+      onReset: regenerate,
+      onPlayReset: playReset,
+      onSnapshot: (event, ctx) => ({
+        snapshot: "snapshot" in event ? (event.snapshot as MSTSnapshot) : null,
+        stats: "snapshot" in event && event.snapshot
+          ? (event.snapshot as MSTSnapshot).stats
+          : ctx.stats,
+        stepIndex: ctx.stepIndex + 1,
+      }),
+    }) as any,
   });
 }

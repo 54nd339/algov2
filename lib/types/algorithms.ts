@@ -8,16 +8,13 @@ export interface AlgorithmStats {
 export interface AlgorithmSnapshot {
   array: number[];
   comparing?: [number, number];
+  swapping?: [number, number];
+  special?: number;
   sorted?: number[];
   visited?: number[];
   found?: boolean;
   stats: AlgorithmStats;
 }
-
-export type SearchInput = {
-  array: number[];
-  target: number;
-};
 
 export interface SearchingSnapshot extends AlgorithmSnapshot {
   searchIndex?: number;
@@ -48,7 +45,6 @@ export interface AlgorithmMetadata {
   id: string;
   name: string;
   description: string;
-  pseudocode: string;
   sourceCode: string;
   complexity: {
     time: {

@@ -1,4 +1,4 @@
-import type { AlgorithmSnapshot, AlgorithmStats } from "@/lib/types/algorithms";
+import type { AlgorithmSnapshot, AlgorithmStats } from "@/lib/types";
 
 export function* quickSort(array: number[]) {
   const result = [...array];
@@ -30,6 +30,7 @@ export function* quickSort(array: number[]) {
       yield {
         array: [...arr],
         comparing: [j, high],
+        special: high,
         stats,
       } as AlgorithmSnapshot;
 
@@ -38,6 +39,14 @@ export function* quickSort(array: number[]) {
         [arr[i], arr[j]] = [arr[j], arr[i]];
         swaps++;
         accesses += 2;
+
+        yield {
+          array: [...arr],
+          comparing: [j, high],
+          swapping: [i, j],
+          special: high,
+          stats: { comparisons, swaps, accesses, timeElapsed: Math.round(performance.now() - startTime) },
+        } as AlgorithmSnapshot;
       }
     }
 

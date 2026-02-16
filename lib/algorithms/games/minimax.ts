@@ -1,4 +1,4 @@
-import type { MinimaxNode, GamesSnapshot, MinimaxStats } from "@/lib/types/games";
+import type { MinimaxNode, GamesSnapshot, MinimaxStats } from "@/lib/types";
 
 /* ── Minimax with Alpha-Beta Pruning ──────────────────────────── */
 
@@ -8,11 +8,9 @@ export function* minimax(depth: number, options?: { initialBoard?: unknown; star
   let nodesPruned = 0;
   const branching = options?.branching ?? 3;
 
-  // Generate a game tree
   const nodes: MinimaxNode[] = [];
   generateTree(nodes, "root", depth, true, branching);
 
-  // Assign random values to leaf nodes
   for (const node of nodes) {
     if (node.children.length === 0) {
       node.value = Math.floor(Math.random() * 20) - 10;
@@ -49,7 +47,6 @@ export function* minimax(depth: number, options?: { initialBoard?: unknown; star
     node.beta = beta;
     yield snap(null);
 
-    // Leaf node
     if (node.children.length === 0) {
       nodesEvaluated++;
       node.status = "evaluated";
@@ -66,7 +63,7 @@ export function* minimax(depth: number, options?: { initialBoard?: unknown; star
         node.alpha = alpha;
 
         if (beta <= alpha) {
-          // Prune remaining children
+          // Alpha-beta cut-off: remaining siblings can't affect the outcome
           const idx = node.children.indexOf(childId);
           for (let i = idx + 1; i < node.children.length; i++) {
             pruneSubtree(nodes, node.children[i]);
@@ -109,7 +106,6 @@ export function* minimax(depth: number, options?: { initialBoard?: unknown; star
 
   const bestValue: number = yield* alphaBeta("root", -Infinity, Infinity);
 
-  // Mark the selected path
   markSelectedPath(nodes, "root");
   yield snap(bestValue);
 }
@@ -153,7 +149,6 @@ function markSelectedPath(nodes: MinimaxNode[], nodeId: string) {
   node.status = "selected";
   if (node.children.length === 0) return;
 
-  // Find child whose value matches this node's value
   for (const childId of node.children) {
     const child = nodes.find((n) => n.id === childId);
     if (child && child.value === node.value && child.status !== "pruned") {

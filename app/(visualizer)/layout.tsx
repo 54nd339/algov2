@@ -1,8 +1,7 @@
 "use client";
 
-import { Sidebar } from "@/components/layout/sidebar";
-import { Header } from "@/components/layout/header";
-import { useAppStore } from "@/stores/app-store";
+import { Sidebar, Header } from "@/components/layout";
+import { useAppStore } from "@/stores";
 
 export default function VisualizerLayout({
   children,
@@ -25,7 +24,7 @@ export default function VisualizerLayout({
 
       <div className="flex flex-1 flex-col min-w-0">
         <Header />
-        <main className="flex-1 p-2 md:p-3">{children}</main>
+        <main className="flex-1 overflow-x-hidden p-2 md:p-3">{children}</main>
       </div>
     </div>
   );

@@ -1,10 +1,11 @@
 import { assign, setup } from "xstate";
-import type { AIContext, AIEvent, AISnapshot, AIStats } from "@/lib/types/ai";
+import type { AIContext, AIEvent, AISnapshot, AIStats } from "@/lib/types";
 import {
   generateRegressionData,
   generateClassificationData,
   generateClusterData,
-} from "@/lib/algorithms/ai/data-utils";
+} from "@/lib/algorithms/ai";
+import { visualizerStates } from "./visualizer-machine";
 
 const DEFAULT_POINT_COUNT = 40;
 
@@ -29,8 +30,15 @@ const resetStats = (): AIStats => ({
 });
 
 export function createAIMachine(algorithmId: string) {
-  const initialK = algorithmId === "k-means" ? 3 : 3;
+  const initialK = 3;
   const initialData = makeInitialData(algorithmId, DEFAULT_POINT_COUNT, initialK);
+
+  const regenerate = (ctx: any) => ({
+    dataPoints: makeInitialData(algorithmId, ctx.pointCount, ctx.k),
+    stats: resetStats(),
+    stepIndex: 0,
+    snapshot: null as AISnapshot | null,
+  });
 
   return setup({
     types: {
@@ -64,7 +72,7 @@ export function createAIMachine(algorithmId: string) {
             dataPoints: makeInitialData(algorithmId, count, context.k),
             stats: resetStats(),
             stepIndex: 0,
-            snapshot: null,
+            snapshot: null as AISnapshot | null,
           };
         }),
       },
@@ -76,7 +84,7 @@ export function createAIMachine(algorithmId: string) {
             dataPoints: makeInitialData(algorithmId, context.pointCount, k),
             stats: resetStats(),
             stepIndex: 0,
-            snapshot: null,
+            snapshot: null as AISnapshot | null,
           };
         }),
       },
@@ -86,12 +94,7 @@ export function createAIMachine(algorithmId: string) {
         }),
       },
       generate: {
-        actions: assign(({ context }) => ({
-          dataPoints: makeInitialData(algorithmId, context.pointCount, context.k),
-          stats: resetStats(),
-          stepIndex: 0,
-          snapshot: null,
-        })),
+        actions: assign(({ context }: any) => regenerate(context)),
       },
       setPoints: {
         actions: assign(({ event }) => ({
@@ -99,106 +102,17 @@ export function createAIMachine(algorithmId: string) {
           pointCount: "points" in event ? event.points.length : 0,
           stats: resetStats(),
           stepIndex: 0,
-          snapshot: null,
+          snapshot: null as AISnapshot | null,
         })),
       },
     },
-    states: {
-      idle: {
-        on: {
-          play: "running",
-          step: "stepping",
-          reset: {
-            actions: assign(({ context }) => ({
-              dataPoints: makeInitialData(algorithmId, context.pointCount, context.k),
-              stats: resetStats(),
-              stepIndex: 0,
-              snapshot: null,
-            })),
-          },
-        },
-      },
-      running: {
-        on: {
-          pause: "paused",
-          reset: {
-            target: "idle",
-            actions: assign(({ context }) => ({
-              dataPoints: makeInitialData(algorithmId, context.pointCount, context.k),
-              stats: resetStats(),
-              stepIndex: 0,
-              snapshot: null,
-            })),
-          },
-          updateSnapshot: {
-            actions: assign({
-              snapshot: ({ event }) =>
-                "snapshot" in event ? (event.snapshot as AISnapshot) : null,
-              stepIndex: ({ context }) => context.stepIndex + 1,
-            }),
-          },
-          done: "done",
-        },
-      },
-      paused: {
-        on: {
-          play: "running",
-          step: "stepping",
-          reset: {
-            target: "idle",
-            actions: assign(({ context }) => ({
-              dataPoints: makeInitialData(algorithmId, context.pointCount, context.k),
-              stats: resetStats(),
-              stepIndex: 0,
-              snapshot: null,
-            })),
-          },
-        },
-      },
-      stepping: {
-        on: {
-          updateSnapshot: {
-            target: "paused",
-            actions: assign({
-              snapshot: ({ event }) =>
-                "snapshot" in event ? (event.snapshot as AISnapshot) : null,
-              stepIndex: ({ context }) => context.stepIndex + 1,
-            }),
-          },
-          play: "running",
-          reset: {
-            target: "idle",
-            actions: assign(({ context }) => ({
-              dataPoints: makeInitialData(algorithmId, context.pointCount, context.k),
-              stats: resetStats(),
-              stepIndex: 0,
-              snapshot: null,
-            })),
-          },
-        },
-      },
-      done: {
-        on: {
-          reset: {
-            target: "idle",
-            actions: assign(({ context }) => ({
-              dataPoints: makeInitialData(algorithmId, context.pointCount, context.k),
-              stats: resetStats(),
-              stepIndex: 0,
-              snapshot: null,
-            })),
-          },
-          generate: {
-            target: "idle",
-            actions: assign(({ context }) => ({
-              dataPoints: makeInitialData(algorithmId, context.pointCount, context.k),
-              stats: resetStats(),
-              stepIndex: 0,
-              snapshot: null,
-            })),
-          },
-        },
-      },
-    },
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- visualizerStates returns a generic shape; XState's createMachine types can't infer the concrete state config
+    states: visualizerStates({
+      onReset: regenerate,
+      onSnapshot: (event, ctx) => ({
+        snapshot: "snapshot" in event ? (event.snapshot as AISnapshot) : null,
+        stepIndex: ctx.stepIndex + 1,
+      }),
+    }) as any,
   });
 }

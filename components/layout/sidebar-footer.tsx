@@ -1,8 +1,8 @@
 
 export function SidebarFooter() {
   return (
-    <div className="border-t border-border px-4 py-3">
-      <p className="text-center font-space text-[10px] tracking-wider text-muted-foreground">
+    <div className="border-t-2 border-border px-4 py-3">
+      <p className="text-center font-space text-2xs tracking-wider text-muted-foreground">
         Made with ❤️ by{" "}
         <a
           href="https://github.com/54nd339"
@@ -10,7 +10,7 @@ export function SidebarFooter() {
           rel="noreferrer"
           className="text-foreground hover:text-algo-green"
         >
-          Sandeep Swain
+          54nd339
         </a>
       </p>
     </div>

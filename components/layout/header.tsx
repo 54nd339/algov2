@@ -1,30 +1,24 @@
 "use client";
 
-import { Menu, Moon, Sun, X } from "lucide-react";
+import { Menu, Moon, Sun, X, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { useTheme } from "next-themes";
-import { useAppStore } from "@/stores/app-store";
-import { Button } from "@/components/ui/button";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet";
+import { useShallow } from "zustand/react/shallow";
+import { useAppStore } from "@/stores";
+import { Button, Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui";
 import { SidebarContent } from "./sidebar";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
 
 export function Header() {
-  const currentAlgo = useAppStore((s) => s.currentAlgo);
-  const sidebarOpen = useAppStore((s) => s.sidebarOpen);
-  const setSidebarOpen = useAppStore((s) => s.setSidebarOpen);
-  const desktopSidebarOpen = useAppStore((s) => s.desktopSidebarOpen);
-  const toggleDesktopSidebar = useAppStore((s) => s.toggleDesktopSidebar);
+  /** Single selector prevents re-renders when unrelated store slices change. */
+  const { currentAlgo, sidebarOpen, setSidebarOpen, desktopSidebarOpen, toggleDesktopSidebar } =
+    useAppStore(
+      useShallow((s) => ({
+        currentAlgo: s.currentAlgo,
+        sidebarOpen: s.sidebarOpen,
+        setSidebarOpen: s.setSidebarOpen,
+        desktopSidebarOpen: s.desktopSidebarOpen,
+        toggleDesktopSidebar: s.toggleDesktopSidebar,
+      })),
+    );
 
   const { theme, setTheme } = useTheme();
   const displayName = currentAlgo?.algoName ?? "Home";
@@ -46,8 +40,8 @@ export function Header() {
           )}
         </Button>
         <div className="flex items-center gap-3">
-          <span className="h-7 w-2 bg-algo-cyan" aria-hidden />
-          <h2 className="font-space text-base font-bold uppercase tracking-widest text-foreground leading-none">
+          <span className="h-9 w-2.5 bg-algo-green" aria-hidden />
+          <h2 className="font-space text-lg font-bold uppercase tracking-widest text-foreground leading-none">
             {displayName}
           </h2>
         </div>

@@ -5,7 +5,7 @@ import type {
   MSTNodeStatus,
   MSTEdgeStatus,
   MSTStats,
-} from "@/lib/types/mst";
+} from "@/lib/types";
 
 /* ── Kruskal's MST Algorithm ────────────────────────────────────────── */
 // Sort all edges by weight, greedily add if it doesn't form a cycle.
@@ -46,7 +46,6 @@ export function* kruskal(
 ): Generator<MSTSnapshot> {
   const sorted = [...edges].sort((a, b) => a.weight - b.weight);
   const uf = new UnionFind(nodes.length);
-  // Map node IDs → sequential indices for UnionFind
   const idMap = new Map(nodes.map((n, i) => [n.id, i]));
 
   const mstEdges: string[] = [];
@@ -86,14 +85,12 @@ export function* kruskal(
     const idxV = idMap.get(edge.v)!;
 
     if (uf.union(idxU, idxV)) {
-      // Edge accepted — no cycle
       mstEdges.push(edge.id);
       totalWeight += edge.weight;
       edgeStatuses[edge.id] = "inMST";
       nodeStatuses[edge.u] = "inMST";
       nodeStatuses[edge.v] = "inMST";
     } else {
-      // Edge rejected — would form cycle
       edgeStatuses[edge.id] = "rejected";
       if (nodeStatuses[edge.u] !== "inMST") nodeStatuses[edge.u] = "idle";
       if (nodeStatuses[edge.v] !== "inMST") nodeStatuses[edge.v] = "idle";
@@ -101,7 +98,7 @@ export function* kruskal(
 
     yield snap();
 
-    // MST complete when we have V-1 edges
+    // A tree with V nodes always has exactly V-1 edges
     if (mstEdges.length === nodes.length - 1) break;
   }
 

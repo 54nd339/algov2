@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Unica_One, Space_Mono } from "next/font/google";
-import { Providers } from "@/components/providers/providers";
+import { Providers } from "@/components/providers";
 import "./globals.css";
 
 const unicaOne = Unica_One({

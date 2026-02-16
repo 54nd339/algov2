@@ -14,14 +14,14 @@ export function InfoPanel({
   return (
     <div
       className={cn(
-        "grid gap-2 md:grid-cols-[2fr_1fr]",
+        "grid gap-2 md:grid-cols-info-split",
         className,
       )}
     >
-      <div className="min-w-0 overflow-hidden border border-border bg-background p-4 md:p-5">
+      <div className="min-w-0 overflow-hidden border-2 border-border bg-card p-5 md:p-6">
         {leftContent}
       </div>
-      <div className="border border-border bg-background p-4 md:p-5">
+      <div className="border-2 border-border bg-card p-5 md:p-6">
         {rightContent}
       </div>
     </div>

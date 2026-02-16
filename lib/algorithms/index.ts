@@ -1,0 +1,1 @@
+export { getAlgorithm } from "./registry";

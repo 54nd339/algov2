@@ -1,4 +1,4 @@
-import type { SearchingSnapshot, AlgorithmStats } from "@/lib/types/algorithms";
+import type { SearchingSnapshot, AlgorithmStats } from "@/lib/types";
 
 export function* jumpSearch(array: number[], target: number) {
   let comparisons = 0;
@@ -10,7 +10,6 @@ export function* jumpSearch(array: number[], target: number) {
   const stepSize = Math.floor(Math.sqrt(n));
   let prev = 0;
 
-  // Finding the block where element is present
   while (array[Math.min(stepSize, n) - 1] < target) {
     comparisons++;
     accesses++;
@@ -51,7 +50,6 @@ export function* jumpSearch(array: number[], target: number) {
     }
   }
 
-  // Linear search in the identified block
   while (array[prev] < target) {
     comparisons++;
     accesses++;
@@ -93,7 +91,6 @@ export function* jumpSearch(array: number[], target: number) {
     }
   }
 
-  // If element is found
   if (array[prev] === target) {
     comparisons++;
     accesses++;

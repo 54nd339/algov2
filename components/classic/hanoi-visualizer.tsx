@@ -1,23 +1,14 @@
-"use client";
-
-import type { HanoiSnapshot } from "@/lib/types/classic";
-
-/* ── Peg colors ────────────────────────────────────────────────── */
-
-const DISC_COLORS = [
-  "var(--algo-green)",
-  "var(--algo-cyan)",
-  "var(--algo-purple)",
-  "var(--algo-yellow)",
-  "var(--algo-red)",
-  "var(--algo-blue)",
-  "var(--algo-green)",
-  "var(--algo-cyan)",
-];
-
-const PEG_WIDTH = 6;
-const PEG_COLOR = "var(--muted-foreground)";
-const BASE_HEIGHT = 8;
+import type { HanoiSnapshot } from "@/lib/types";
+import { ScrollArea } from "@/components/ui";
+import { EmptyVisualizerState } from "@/components/common";
+import {
+  DISC_COLORS,
+  PEG_WIDTH,
+  PEG_COLOR,
+  BASE_HEIGHT,
+  getDiscWidth,
+  hanoiLayout,
+} from "@/lib/algorithms/classic";
 
 interface HanoiVisualizerProps {
   snapshot: HanoiSnapshot | null;
@@ -26,29 +17,16 @@ interface HanoiVisualizerProps {
 
 export function HanoiVisualizer({ snapshot, discCount }: HanoiVisualizerProps) {
   if (!snapshot) {
-    return (
-      <div className="flex h-full w-full items-center justify-center font-space text-muted-foreground">
-        Press Play to start
-      </div>
-    );
+    return <EmptyVisualizerState />;
   }
 
   const { pegs, activeDisc } = snapshot;
   const maxDiscs = discCount;
-  const discHeight = Math.max(16, Math.min(32, 200 / maxDiscs));
-  const pegHeight = (maxDiscs + 1) * discHeight + BASE_HEIGHT;
-  const pegSpacing = 220;
-  const totalWidth = pegSpacing * 3;
-  const svgHeight = pegHeight + 40;
-
-  function getDiscWidth(size: number): number {
-    const minW = 30;
-    const maxW = pegSpacing - 20;
-    return minW + ((maxW - minW) * size) / maxDiscs;
-  }
+  const { discHeight, pegSpacing, pegHeight, totalWidth, svgHeight } = hanoiLayout(maxDiscs);
 
   return (
-    <div className="flex h-full w-full items-center justify-center overflow-auto p-4">
+    <ScrollArea className="h-full w-full">
+      <div className="flex items-center justify-center p-4">
       <svg
         viewBox={`0 0 ${totalWidth} ${svgHeight}`}
         className="max-h-full max-w-full"
@@ -95,9 +73,9 @@ export function HanoiVisualizer({ snapshot, discCount }: HanoiVisualizerProps) {
                 {peg.name}
               </text>
 
-              {/* Discs (bottom-up: last in array = bottom) */}
+              {/* Reversed so last disc in array renders at bottom of peg */}
               {[...peg.discs].reverse().map((disc, stackIdx) => {
-                const w = getDiscWidth(disc.size);
+                const w = getDiscWidth(disc.size, maxDiscs, pegSpacing);
                 const y = baseY - (stackIdx + 1) * discHeight;
                 const isActive = disc.id === activeDisc;
 
@@ -120,6 +98,7 @@ export function HanoiVisualizer({ snapshot, discCount }: HanoiVisualizerProps) {
           );
         })}
       </svg>
-    </div>
+      </div>
+    </ScrollArea>
   );
 }

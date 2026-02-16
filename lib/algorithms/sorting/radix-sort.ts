@@ -1,4 +1,4 @@
-import type { AlgorithmSnapshot, AlgorithmStats } from "@/lib/types/algorithms";
+import type { AlgorithmSnapshot, AlgorithmStats } from "@/lib/types";
 
 export function* radixSort(array: number[]) {
   const result = [...array];
@@ -29,6 +29,7 @@ export function* radixSort(array: number[]) {
       yield {
         array: [...result],
         comparing: [i, digit],
+        special: i,
         stats,
       } as AlgorithmSnapshot;
     }

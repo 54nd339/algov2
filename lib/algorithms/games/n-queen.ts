@@ -1,4 +1,4 @@
-import type { BoardCell, GamesSnapshot, NQueenStats } from "@/lib/types/games";
+import type { BoardCell, GamesSnapshot, NQueenStats } from "@/lib/types";
 
 /* ── N-Queen Problem (Backtracking) ────────────────────────────── */
 
@@ -52,23 +52,19 @@ export function* nQueen(n: number): Generator<GamesSnapshot> {
       yield snap();
 
       if (!colSet.has(col) && !diag1.has(row - col) && !diag2.has(row + col)) {
-        // Place queen
         board[row][col].value = 1;
         board[row][col].status = "placed";
         colSet.add(col);
         diag1.add(row - col);
         diag2.add(row + col);
 
-        // Mark conflicts
         markThreats(board, row, col, n);
         yield snap();
 
         yield* solve(row + 1);
 
-        // If we only want first solution, uncomment:
         if (solutionsFound > 0) return;
 
-        // Remove queen (backtrack)
         board[row][col].value = 0;
         board[row][col].status = "empty";
         colSet.delete(col);
@@ -91,17 +87,14 @@ export function* nQueen(n: number): Generator<GamesSnapshot> {
 }
 
 function markThreats(board: BoardCell[][], qRow: number, qCol: number, n: number) {
-  // Reset non-queen cells first
   for (const row of board) {
     for (const cell of row) {
       if (cell.value !== 1 && cell.status !== "active") cell.status = "empty";
     }
   }
-  // Mark threatened cells
   for (let r = 0; r < n; r++) {
     for (let c = 0; c < n; c++) {
       if (board[r][c].value === 1) continue;
-      // Check all placed queens
       for (const row of board) {
         for (const cell of row) {
           if (cell.value !== 1) continue;
@@ -124,7 +117,6 @@ function clearThreats(board: BoardCell[][], n: number) {
       if (board[r][c].value !== 1) board[r][c].status = "empty";
     }
   }
-  // Re-mark from remaining queens
   for (const row of board) {
     for (const cell of row) {
       if (cell.value === 1) markThreats(board, cell.row, cell.col, n);

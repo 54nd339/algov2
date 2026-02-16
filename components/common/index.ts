@@ -1,6 +1,12 @@
 export { ControlPanel } from "./control-panel";
+export { ControlPanelShell, GenerateButton, ControlSlider, PlaybackControls } from "./control-panel-primitives";
 export { StatsPanel } from "./stats-panel";
+export { StatCell } from "./stat-cell";
 export { VisualizerPanel } from "./visualizer-panel";
 export { InfoPanel } from "./info-panel";
 export { ComplexityPanel } from "./complexity-panel";
 export { CodeDisplay } from "./code-display";
+export { ArrayDisplay } from "./array-display";
+export { NodeHandles } from "./node-handles";
+export { EmptyVisualizerState } from "./empty-visualizer-state";
+export { TopBar } from "./top-bar";

@@ -1,4 +1,11 @@
-import type { GridCell } from "@/lib/types/pathfinding";
+import type { GridCell } from "@/lib/types";
+
+/** Landscape ratio for the grid so maze corridors stay visually balanced */
+export const GRID_ASPECT_RATIO = 1.95;
+
+export function colsForRows(rows: number): number {
+  return Math.round(rows * GRID_ASPECT_RATIO);
+}
 
 export function createGrid(
   rows: number,

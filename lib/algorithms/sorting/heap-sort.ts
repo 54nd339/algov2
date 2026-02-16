@@ -1,4 +1,4 @@
-import type { AlgorithmSnapshot, AlgorithmStats } from "@/lib/types/algorithms";
+import type { AlgorithmSnapshot, AlgorithmStats } from "@/lib/types";
 
 export function* heapSort(array: number[]) {
   const result = [...array];
@@ -75,6 +75,7 @@ export function* heapSort(array: number[]) {
       yield {
         array: [...arr],
         comparing: [i, largest],
+        swapping: [i, largest],
         stats: swapStats,
       } as AlgorithmSnapshot;
 
@@ -103,6 +104,8 @@ export function* heapSort(array: number[]) {
     yield {
       array: [...result],
       comparing: [0, i],
+      swapping: [0, i],
+      special: 0,
       stats,
     } as AlgorithmSnapshot;
 

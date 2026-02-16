@@ -5,11 +5,11 @@ import type {
   MSTNodeStatus,
   MSTEdgeStatus,
   MSTStats,
-} from "@/lib/types/mst";
+} from "@/lib/types";
 import {
   buildAdjacencyList,
   edgeId,
-} from "@/lib/algorithms/shortest-path/graph-utils";
+} from "@/lib/algorithms/shortest-path";
 
 /* ── Prim's MST Algorithm ───────────────────────────────────────────── */
 // Greedy: grow MST from node 0 by always adding the lightest crossing edge.
@@ -46,7 +46,6 @@ export function* prim(
     timeElapsed: Math.round(performance.now() - startTime),
   });
 
-  // Start from source node (or node 0)
   const start = sourceNode ?? nodes[0].id;
   inMST.add(start);
   nodeStatuses[start] = "source";
@@ -56,7 +55,6 @@ export function* prim(
     let bestEdge: { u: number; v: number; weight: number; eid: string } | null =
       null;
 
-    // Scan all edges from MST frontier
     for (const u of inMST) {
       for (const neighbor of adj.get(u) ?? []) {
         if (inMST.has(neighbor.to)) continue;
@@ -65,7 +63,6 @@ export function* prim(
         edgeStatuses[eid] = "considered";
 
         if (!bestEdge || neighbor.weight < bestEdge.weight) {
-          // Reject previous best
           if (bestEdge) edgeStatuses[bestEdge.eid] = "rejected";
           bestEdge = { u, v: neighbor.to, weight: neighbor.weight, eid };
           edgeStatuses[eid] = "active";
@@ -77,9 +74,8 @@ export function* prim(
 
     yield snap();
 
-    if (!bestEdge) break; // disconnected graph
+    if (!bestEdge) break; // disconnected graph — no crossing edges remain
 
-    // Add best edge to MST
     inMST.add(bestEdge.v);
     mstEdges.push(bestEdge.eid);
     totalWeight += bestEdge.weight;
@@ -87,7 +83,6 @@ export function* prim(
     nodeStatuses[bestEdge.v] = "inMST";
     nodeStatuses[bestEdge.u] = "inMST";
 
-    // Clear non-MST edge statuses for next iteration
     for (const e of edges) {
       if (edgeStatuses[e.id] !== "inMST") {
         edgeStatuses[e.id] = "idle";
@@ -97,7 +92,6 @@ export function* prim(
     yield snap();
   }
 
-  // Final — mark source
   nodeStatuses[start] = "source";
   yield snap();
 }

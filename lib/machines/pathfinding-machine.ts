@@ -1,15 +1,11 @@
 import { assign, setup } from "xstate";
-import type {
-  PathfindingContext,
-  PathfindingEvent,
-  PathfindingSnapshot,
-  PathfindingStats,
-} from "@/lib/types/pathfinding";
-import { createGrid, generateMaze } from "@/lib/algorithms/pathfinding/grid";
+import type { PathfindingContext, PathfindingEvent, PathfindingSnapshot, PathfindingStats } from "@/lib/types";
+import { createGrid, generateMaze } from "@/lib/algorithms/pathfinding";
+import { GRID_CELL_SIZE } from "@/config";
+import { visualizerStates } from "./visualizer-machine";
 
 const DEFAULT_ROWS = 21;
 const DEFAULT_COLS = 41;
-const DEFAULT_CELL_SIZE = 24;
 
 function defaultStart(rows: number) {
   return { row: Math.floor(rows / 2), col: 1 };
@@ -34,6 +30,19 @@ export function createPathfindingMachine(algorithmId: string) {
     defaultEnd(DEFAULT_ROWS, DEFAULT_COLS),
   );
 
+  const freshGrid = (ctx: any) => ({
+    grid: createGrid(ctx.rows, ctx.cols, ctx.startNode, ctx.endNode),
+    stats: resetStats(),
+    stepIndex: 0,
+    snapshot: null,
+  });
+
+  const mazeAction = (ctx: any) => {
+    const base = createGrid(ctx.rows, ctx.cols, ctx.startNode, ctx.endNode);
+    const maze = generateMaze(base, ctx.startNode, ctx.endNode);
+    return { grid: maze, stats: resetStats(), stepIndex: 0, snapshot: null };
+  };
+
   return setup({
     types: {
       context: {} as PathfindingContext,
@@ -46,7 +55,7 @@ export function createPathfindingMachine(algorithmId: string) {
       grid: initialGrid,
       rows: DEFAULT_ROWS,
       cols: DEFAULT_COLS,
-      cellSize: DEFAULT_CELL_SIZE,
+      cellSize: GRID_CELL_SIZE,
       startNode: defaultStart(DEFAULT_ROWS),
       endNode: defaultEnd(DEFAULT_ROWS, DEFAULT_COLS),
       speed: 5,
@@ -63,16 +72,14 @@ export function createPathfindingMachine(algorithmId: string) {
       sizeChange: {
         actions: assign(({ event }) => {
           const e = event as { type: "sizeChange"; rows: number; cols: number };
-          const rows = e.rows;
-          const cols = e.cols;
-          const s = defaultStart(rows);
-          const en = defaultEnd(rows, cols);
+          const s = defaultStart(e.rows);
+          const en = defaultEnd(e.rows, e.cols);
           return {
-            rows,
-            cols,
+            rows: e.rows,
+            cols: e.cols,
             startNode: s,
             endNode: en,
-            grid: createGrid(rows, cols, s, en),
+            grid: createGrid(e.rows, e.cols, s, en),
             stats: resetStats(),
             stepIndex: 0,
             snapshot: null,
@@ -122,133 +129,24 @@ export function createPathfindingMachine(algorithmId: string) {
         }),
       },
     },
-    states: {
-      idle: {
-        on: {
-          play: "running",
-          step: "stepping",
-          reset: {
-            actions: assign(({ context }) => ({
-              grid: createGrid(context.rows, context.cols, context.startNode, context.endNode),
-              stats: resetStats(),
-              stepIndex: 0,
-              snapshot: null,
-            })),
-          },
-          generateMaze: {
-            actions: assign(({ context }) => {
-              const base = createGrid(context.rows, context.cols, context.startNode, context.endNode);
-              const maze = generateMaze(base, context.startNode, context.endNode);
-              return { grid: maze, stats: resetStats(), stepIndex: 0, snapshot: null };
-            }),
-          },
-          clearWalls: {
-            actions: assign(({ context }) => ({
-              grid: createGrid(context.rows, context.cols, context.startNode, context.endNode),
-              stats: resetStats(),
-              stepIndex: 0,
-              snapshot: null,
-            })),
-          },
-        },
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- visualizerStates returns a generic shape; XState's createMachine types can't infer the concrete state config
+    states: visualizerStates({
+      onReset: freshGrid,
+      onSnapshot: (event, ctx) => ({
+        snapshot: "snapshot" in event ? (event.snapshot as PathfindingSnapshot) : null,
+        stats: "snapshot" in event && event.snapshot
+          ? (event.snapshot as PathfindingSnapshot).stats
+          : ctx.stats,
+        stepIndex: ctx.stepIndex + 1,
+      }),
+      extraIdleOn: {
+        generateMaze: { actions: assign(({ context }: any) => mazeAction(context)) },
+        clearWalls: { actions: assign(({ context }: any) => freshGrid(context)) },
       },
-      running: {
-        on: {
-          pause: "paused",
-          reset: {
-            target: "idle",
-            actions: assign(({ context }) => ({
-              grid: createGrid(context.rows, context.cols, context.startNode, context.endNode),
-              stats: resetStats(),
-              stepIndex: 0,
-              snapshot: null,
-            })),
-          },
-          updateSnapshot: {
-            actions: assign({
-              snapshot: ({ event }) =>
-                "snapshot" in event ? (event.snapshot as PathfindingSnapshot) : null,
-              stats: ({ event, context }) =>
-                "snapshot" in event && event.snapshot
-                  ? (event.snapshot as PathfindingSnapshot).stats
-                  : context.stats,
-              stepIndex: ({ context }) => context.stepIndex + 1,
-            }),
-          },
-          done: "done",
-        },
+      extraDoneOn: {
+        generateMaze: { target: "idle", actions: assign(({ context }: any) => mazeAction(context)) },
+        clearWalls: { target: "idle", actions: assign(({ context }: any) => freshGrid(context)) },
       },
-      paused: {
-        on: {
-          play: "running",
-          step: "stepping",
-          reset: {
-            target: "idle",
-            actions: assign(({ context }) => ({
-              grid: createGrid(context.rows, context.cols, context.startNode, context.endNode),
-              stats: resetStats(),
-              stepIndex: 0,
-              snapshot: null,
-            })),
-          },
-        },
-      },
-      stepping: {
-        on: {
-          updateSnapshot: {
-            target: "paused",
-            actions: assign({
-              snapshot: ({ event }) =>
-                "snapshot" in event ? (event.snapshot as PathfindingSnapshot) : null,
-              stats: ({ event, context }) =>
-                "snapshot" in event && event.snapshot
-                  ? (event.snapshot as PathfindingSnapshot).stats
-                  : context.stats,
-              stepIndex: ({ context }) => context.stepIndex + 1,
-            }),
-          },
-          play: "running",
-          reset: {
-            target: "idle",
-            actions: assign(({ context }) => ({
-              grid: createGrid(context.rows, context.cols, context.startNode, context.endNode),
-              stats: resetStats(),
-              stepIndex: 0,
-              snapshot: null,
-            })),
-          },
-        },
-      },
-      done: {
-        on: {
-          reset: {
-            target: "idle",
-            actions: assign(({ context }) => ({
-              grid: createGrid(context.rows, context.cols, context.startNode, context.endNode),
-              stats: resetStats(),
-              stepIndex: 0,
-              snapshot: null,
-            })),
-          },
-          generateMaze: {
-            target: "idle",
-            actions: assign(({ context }) => {
-              const base = createGrid(context.rows, context.cols, context.startNode, context.endNode);
-              const maze = generateMaze(base, context.startNode, context.endNode);
-              return { grid: maze, stats: resetStats(), stepIndex: 0, snapshot: null };
-            }),
-          },
-          clearWalls: {
-            target: "idle",
-            actions: assign(({ context }) => ({
-              grid: createGrid(context.rows, context.cols, context.startNode, context.endNode),
-              stats: resetStats(),
-              stepIndex: 0,
-              snapshot: null,
-            })),
-          },
-        },
-      },
-    },
+    }) as any,
   });
 }

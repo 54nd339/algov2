@@ -1,27 +1,17 @@
-import type { GridCell, PathfindingSnapshot, PathfindingStats } from "@/lib/types/pathfinding";
-import { getNeighbors, reconstructPath, cellKey, countWalls, manhattanDistance } from "./grid";
+import type { GridCell, PathfindingSnapshot } from "@/lib/types";
+import { getNeighbors, cellKey, manhattanDistance } from "./grid";
+import { initPathfinding, stepSnapshot, foundSnapshot, noPathSnapshot } from "./shared";
 
 export function* aStar(
   grid: GridCell[][],
   start: { row: number; col: number },
   end: { row: number; col: number },
 ): Generator<PathfindingSnapshot> {
-  const startTime = performance.now();
-  const startCell = grid[start.row][start.col];
-  const endCell = grid[end.row][end.col];
-  const walls = countWalls(grid);
-
-  const makeStats = (explored: number, pathLen: number): PathfindingStats => ({
-    cellsExplored: explored,
-    pathLength: pathLen,
-    wallCount: walls,
-    timeElapsed: Math.round(performance.now() - startTime),
-  });
+  const { startCell, endCell, visitedKeys, frontierKeys, makeStats } =
+    initPathfinding(grid, start, end);
 
   startCell.distance = 0;
   startCell.heuristic = manhattanDistance(start, end);
-  const visitedKeys: string[] = [];
-  const frontierKeys = new Set<string>();
   const open: GridCell[] = [startCell];
   frontierKeys.add(cellKey(startCell.row, startCell.col));
 
@@ -38,24 +28,10 @@ export function* aStar(
     current.isVisited = true;
     visitedKeys.push(key);
 
-    yield {
-      grid,
-      currentCell: { row: current.row, col: current.col },
-      visitedCells: [...visitedKeys],
-      pathCells: [],
-      frontierCells: [...frontierKeys],
-      stats: makeStats(visitedKeys.length, 0),
-    };
+    yield stepSnapshot(grid, current, visitedKeys, frontierKeys, makeStats);
 
     if (current.row === endCell.row && current.col === endCell.col) {
-      const path = reconstructPath(endCell).map((p) => cellKey(p.row, p.col));
-      yield {
-        grid,
-        visitedCells: [...visitedKeys],
-        pathCells: path,
-        frontierCells: [],
-        stats: makeStats(visitedKeys.length, path.length),
-      };
+      yield foundSnapshot(grid, endCell, visitedKeys, makeStats);
       return;
     }
 
@@ -79,11 +55,5 @@ export function* aStar(
     }
   }
 
-  yield {
-    grid,
-    visitedCells: [...visitedKeys],
-    pathCells: [],
-    frontierCells: [],
-    stats: makeStats(visitedKeys.length, 0),
-  };
+  yield noPathSnapshot(grid, visitedKeys, makeStats);
 }

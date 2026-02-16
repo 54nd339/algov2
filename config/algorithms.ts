@@ -9,7 +9,7 @@ import {
   Layers,
   type LucideIcon,
 } from "lucide-react";
-import type { AlgorithmMetadata } from "@/lib/types/algorithms";
+import type { AlgorithmMetadata } from "@/lib/types";
 
 export interface Algorithm extends AlgorithmMetadata {
   id: string;
@@ -29,10 +29,6 @@ const sortingAlgorithms: Algorithm[] = [
     name: "Bubble Sort",
     description:
       "A simple comparison-based sorting algorithm that repeatedly steps through the list, compares adjacent elements, and swaps them if they are in the wrong order.",
-    pseudocode: `for i = 0 to n-1
-  for j = 0 to n-i-2
-    if arr[j] > arr[j+1]
-      swap(arr[j], arr[j+1])`,
     sourceCode: `function bubbleSort(arr: number[]): number[] {
   const n = arr.length;
 
@@ -60,13 +56,6 @@ const sortingAlgorithms: Algorithm[] = [
     name: "Insertion Sort",
     description:
       "Builds the sorted array one item at a time by repeatedly taking elements from the unsorted portion and inserting them into their correct position in the sorted portion.",
-    pseudocode: `for i = 1 to n-1
-  key = arr[i]
-  j = i - 1
-  while j >= 0 and arr[j] > key
-    arr[j+1] = arr[j]
-    j = j - 1
-  arr[j+1] = key`,
     sourceCode: `function insertionSort(arr: number[]): number[] {
   for (let i = 1; i < arr.length; i++) {
     const key = arr[i];
@@ -96,12 +85,6 @@ const sortingAlgorithms: Algorithm[] = [
     name: "Selection Sort",
     description:
       "Divides the array into sorted and unsorted portions, iteratively selecting the smallest element from the unsorted portion and moving it to the sorted portion.",
-    pseudocode: `for i = 0 to n-1
-  minIndex = i
-  for j = i+1 to n-1
-    if arr[j] < arr[minIndex]
-      minIndex = j
-  swap(arr[i], arr[minIndex])`,
     sourceCode: `function selectionSort(arr: number[]): number[] {
   const n = arr.length;
 
@@ -135,12 +118,6 @@ const sortingAlgorithms: Algorithm[] = [
     name: "Merge Sort",
     description:
       "A divide-and-conquer algorithm that recursively divides the array into halves, sorts them, and merges the sorted halves back together.",
-    pseudocode: `mergeSort(arr, left, right)
-  if left < right
-    mid = (left + right) / 2
-    mergeSort(arr, left, mid)
-    mergeSort(arr, mid+1, right)
-    merge(arr, left, mid, right)`,
     sourceCode: `function mergeSort(arr: number[]): number[] {
   if (arr.length <= 1) return arr;
 
@@ -178,11 +155,6 @@ function merge(left: number[], right: number[]): number[] {
     name: "Quick Sort",
     description:
       "A divide-and-conquer algorithm that partitions the array around a pivot element and recursively sorts the partitions.",
-    pseudocode: `quickSort(arr, low, high)
-  if low < high
-    pi = partition(arr, low, high)
-    quickSort(arr, low, pi - 1)
-    quickSort(arr, pi + 1, high)`,
     sourceCode: `function quickSort(arr: number[], low = 0, high = arr.length - 1): number[] {
   if (low < high) {
     const pivotIndex = partition(arr, low, high);
@@ -219,10 +191,6 @@ function partition(arr: number[], low: number, high: number): number {
     name: "Heap Sort",
     description:
       "Uses a heap data structure to sort elements by repeatedly extracting the maximum element and placing it at the end of the array.",
-    pseudocode: `buildMaxHeap(arr)
-for i = n-1 down to 1
-  swap(arr[0], arr[i])
-  maxHeapify(arr, 0, i)`,
     sourceCode: `function heapSort(arr: number[]): number[] {
   const n = arr.length;
 
@@ -265,8 +233,6 @@ function heapify(arr: number[], i: number, size: number) {
     name: "Radix Sort",
     description:
       "A non-comparison sorting algorithm that sorts integers by processing individual digits from least to most significant.",
-    pseudocode: `for digit = 1 to max_digits
-  sort by digit at position`,
     sourceCode: `function radixSort(arr: number[]): number[] {
   const max = Math.max(...arr);
 
@@ -321,10 +287,6 @@ const searchingAlgorithms: Algorithm[] = [
     name: "Linear Search",
     description:
       "A simple search algorithm that checks every element in the array sequentially until the target is found or the array is exhausted.",
-    pseudocode: `for i = 0 to n-1
-  if arr[i] == target
-    return i
-return -1`,
     sourceCode: `function linearSearch(arr: number[], target: number): number {
   for (let i = 0; i < arr.length; i++) {
     if (arr[i] === target) {
@@ -346,12 +308,6 @@ return -1`,
     name: "Binary Search",
     description:
       "An efficient search algorithm that repeatedly divides the sorted array in half to narrow down the search space.",
-    pseudocode: `left = 0, right = n - 1
-while left <= right
-  mid = (left + right) / 2
-  if arr[mid] == target: return mid
-  if arr[mid] < target: left = mid + 1
-  else: right = mid - 1`,
     sourceCode: `function binarySearch(arr: number[], target: number): number {
   let left = 0;
   let right = arr.length - 1;
@@ -382,14 +338,6 @@ while left <= right
     name: "Jump Search",
     description:
       "A search algorithm that jumps through the array in fixed steps and then performs a linear search in the identified block.",
-    pseudocode: `step = sqrt(n)
-prev = 0
-while arr[min(step, n)-1] < target
-  prev = step
-  step += sqrt(n)
-while arr[prev] < target
-  prev += 1
-return arr[prev] == target ? prev : -1`,
     sourceCode: `function jumpSearch(arr: number[], target: number): number {
   const n = arr.length;
   const step = Math.floor(Math.sqrt(n));
@@ -426,13 +374,6 @@ const pathFindingAlgorithms: Algorithm[] = [
     name: "Depth First Search",
     description:
       "Explores as far as possible along each branch before backtracking. Uses a stack data structure. Does not guarantee the shortest path on unweighted grids.",
-    pseudocode: `stack.push(startNode)
-while stack is not empty
-  node = stack.pop()
-  if node is target: return path
-  if node is wall or visited: continue
-  mark node as visited
-  push unvisited neighbors onto stack`,
     sourceCode: `function dfs(grid: Cell[][], start: Cell, end: Cell): Cell[] {
   const visited: Cell[] = [];
   const stack: Cell[] = [start];
@@ -469,13 +410,6 @@ while stack is not empty
     name: "Breadth First Search",
     description:
       "Explores all nodes at the current depth before moving to the next level. Uses a queue. Guarantees the shortest path on unweighted grids.",
-    pseudocode: `queue.enqueue(startNode)
-while queue is not empty
-  node = queue.dequeue()
-  if node is target: return path
-  if node is wall or visited: continue
-  mark node as visited
-  enqueue unvisited neighbors`,
     sourceCode: `function bfs(grid: Cell[][], start: Cell, end: Cell): Cell[] {
   const visited: Cell[] = [];
   const queue: Cell[] = [start];
@@ -512,16 +446,6 @@ while queue is not empty
     name: "Dijkstra's Algorithm",
     description:
       "Finds the shortest path from a start node to all other nodes by always expanding the nearest unvisited node. On a uniform-weight grid, behaves similarly to BFS but with explicit distance tracking.",
-    pseudocode: `dist[start] = 0
-add start to priority queue
-while queue is not empty
-  node = extract min from queue
-  if node is target: return path
-  for each neighbor of node
-    newDist = dist[node] + 1
-    if newDist < dist[neighbor]
-      dist[neighbor] = newDist
-      add neighbor to queue`,
     sourceCode: `function dijkstra(grid: Cell[][], start: Cell, end: Cell): Cell[] {
   const visited: Cell[] = [];
   start.distance = 0;
@@ -567,18 +491,6 @@ while queue is not empty
     name: "A* Search",
     description:
       "An informed search algorithm that uses a heuristic (Manhattan distance) to guide exploration toward the target. Combines Dijkstra's approach with a heuristic for faster convergence. Guarantees the shortest path when the heuristic is admissible.",
-    pseudocode: `dist[start] = 0
-h[start] = manhattan(start, end)
-add start to priority queue
-while queue is not empty
-  node = extract min by (dist + h)
-  if node is target: return path
-  for each neighbor of node
-    newDist = dist[node] + 1
-    if newDist < dist[neighbor]
-      dist[neighbor] = newDist
-      h[neighbor] = manhattan(neighbor, end)
-      add neighbor to queue`,
     sourceCode: `function aStar(grid: Cell[][], start: Cell, end: Cell): Cell[] {
   const visited: Cell[] = [];
   start.distance = 0;
@@ -632,13 +544,6 @@ const shortestPathAlgorithms: Algorithm[] = [
     name: "Dijkstra's Algorithm",
     description:
       "Finds the shortest paths from a single source to all other nodes in a weighted graph with non-negative edge weights. Uses a greedy approach, always expanding the nearest unvisited node.",
-    pseudocode: `dist[source] = 0
-for each node: dist[node] = ∞
-while unvisited nodes remain
-  u = node with min dist
-  for each neighbor v of u
-    if dist[u] + weight(u,v) < dist[v]
-      dist[v] = dist[u] + weight(u,v)`,
     sourceCode: `function dijkstra(nodes: Node[], edges: Edge[], source: number) {
   const dist: Record<number, number> = {};
   const prev: Record<number, number[]> = {};
@@ -690,15 +595,6 @@ while unvisited nodes remain
     name: "Bellman-Ford",
     description:
       "Finds shortest paths from a single source, handling negative edge weights. Runs V-1 relaxation passes over all edges. Can detect negative-weight cycles.",
-    pseudocode: `dist[source] = 0
-for i = 1 to V-1
-  for each edge (u, v, w)
-    if dist[u] + w < dist[v]
-      dist[v] = dist[u] + w
-// Check for negative cycles
-for each edge (u, v, w)
-  if dist[u] + w < dist[v]
-    report negative cycle`,
     sourceCode: `function bellmanFord(nodes: Node[], edges: Edge[], source: number) {
   const dist: Record<number, number> = {};
   const prev: Record<number, number[]> = {};
@@ -748,12 +644,6 @@ for each edge (u, v, w)
     name: "Floyd-Warshall",
     description:
       "Computes shortest paths between all pairs of nodes using dynamic programming. Has a simple triple-nested loop structure. Works with negative weights but not negative cycles.",
-    pseudocode: `for each pair (i, j): dist[i][j] = weight(i,j)
-for k = 1 to V
-  for i = 1 to V
-    for j = 1 to V
-      if dist[i][k] + dist[k][j] < dist[i][j]
-        dist[i][j] = dist[i][k] + dist[k][j]`,
     sourceCode: `function floydWarshall(nodes: Node[], edges: Edge[]) {
   const ids = nodes.map(n => n.id);
   const dist: Record<number, Record<number, number>> = {};
@@ -803,12 +693,6 @@ const mstAlgorithms: Algorithm[] = [
     name: "Prim's Algorithm",
     description:
       "A greedy algorithm that builds the minimum spanning tree by growing it one edge at a time, always choosing the lightest edge that connects a new vertex to the tree.",
-    pseudocode: `MST = {start}
-while MST has < V vertices:
-  find minimum weight edge (u, v)
-    where u ∈ MST and v ∉ MST
-  add v to MST
-  add edge (u, v) to MST edges`,
     sourceCode: `function prim(nodes: Node[], edges: Edge[]): Edge[] {
   const adj = buildAdjacencyList(nodes, edges);
   const inMST = new Set<number>();
@@ -852,12 +736,6 @@ while MST has < V vertices:
     name: "Kruskal's Algorithm",
     description:
       "A greedy algorithm that sorts all edges by weight and adds them one at a time to the MST, skipping any edge that would create a cycle. Uses Union-Find for cycle detection.",
-    pseudocode: `sort edges by weight ascending
-for each edge (u, v) in sorted order:
-  if find(u) ≠ find(v):
-    union(u, v)
-    add edge to MST
-  if MST has V-1 edges: stop`,
     sourceCode: `class UnionFind {
   parent: number[];
   rank: number[];
@@ -914,15 +792,6 @@ const aiAlgorithms: Algorithm[] = [
     name: "Linear Regression",
     description:
       "Fits a straight line (y = mx + b) to data points by minimizing the mean squared error using gradient descent. The line iteratively adjusts its slope and intercept to best predict the relationship between variables.",
-    pseudocode: `initialize slope = 0, intercept = 0
-for each epoch:
-  for each point (x, y):
-    prediction = slope * x + intercept
-    error = prediction - y
-    dSlope += error * x
-    dIntercept += error
-  slope -= learningRate * dSlope / n
-  intercept -= learningRate * dIntercept / n`,
     sourceCode: `function linearRegression(points: Point[], lr: number) {
   let slope = 0, intercept = 0;
   const n = points.length;
@@ -955,11 +824,6 @@ for each epoch:
     name: "K-Nearest Neighbors",
     description:
       "A non-parametric classification algorithm that assigns a class label to an unclassified point based on the majority vote of its k closest neighbors, measured by Euclidean distance.",
-    pseudocode: `for each test point:
-  compute distance to all labeled points
-  sort distances ascending
-  select k nearest neighbors
-  predicted class = majority vote of neighbors`,
     sourceCode: `function knn(labeled: Point[], test: Point, k: number) {
   const distances = labeled.map((p, i) => ({
     index: i,
@@ -991,12 +855,6 @@ for each epoch:
     name: "K-Means Clustering",
     description:
       "An unsupervised clustering algorithm that partitions data into k clusters by iteratively assigning points to the nearest centroid and recalculating centroid positions until convergence.",
-    pseudocode: `initialize k centroids randomly
-repeat until convergence:
-  assign each point to nearest centroid
-  for each cluster:
-    recalculate centroid as mean of members
-  if centroids unchanged: stop`,
     sourceCode: `function kMeans(points: Point[], k: number) {
   // Initialize centroids from random data points
   let centroids = randomSample(points, k);
@@ -1038,6 +896,32 @@ repeat until convergence:
     stable: false,
     inPlace: false,
   },
+  {
+    id: "perceptron",
+    name: "Perceptron",
+    description:
+      "A multi-layer perceptron (MLP) neural network trained via backpropagation. Each layer of neurons applies weighted sums and activation functions to inputs, learning the XOR function through iterative weight updates across training epochs.",
+    sourceCode: `function* perceptron(network, params) {
+  const { activationFunction, totalEpochs } = params;
+  const trainingData = [[0,0,0],[0,1,1],[1,0,1],[1,1,0]];
+
+  for (let epoch = 1; epoch <= totalEpochs; epoch++) {
+    for (const [x1, x2, target] of trainingData) {
+      // Forward pass
+      const output = forward(network, [x1, x2]);
+      // Backward pass (backpropagation)
+      backward(network, [x1, x2], target);
+      yield snapshot(network, epoch);
+    }
+  }
+}`,
+    complexity: {
+      time: { best: "O(e*n*m)", average: "O(e*n*m)", worst: "O(e*n*m)" },
+      space: "O(n*m)",
+    },
+    stable: true,
+    inPlace: false,
+  },
 ];
 
 const gamesAlgorithms: Algorithm[] = [
@@ -1046,16 +930,6 @@ const gamesAlgorithms: Algorithm[] = [
     name: "N-Queen Problem",
     description:
       "The N-Queen problem places N chess queens on an N×N board so that no two queens threaten each other. It uses backtracking to try placing one queen per row, pruning invalid positions early.",
-    pseudocode: `function solveNQueen(board, row):
-  if row === N:
-    return true   // all queens placed
-  for col = 0 to N-1:
-    if isSafe(row, col):
-      placeQueen(row, col)
-      if solveNQueen(board, row + 1):
-        return true
-      removeQueen(row, col)   // backtrack
-  return false`,
     sourceCode: `function* nQueen(n: number) {
   const board = createBoard(n);
   const cols = new Set<number>();
@@ -1094,16 +968,6 @@ const gamesAlgorithms: Algorithm[] = [
     name: "Sudoku Solver",
     description:
       "Solves a Sudoku puzzle using constraint-satisfaction backtracking. It finds the next empty cell, tries digits 1–N, validates against row/column/box constraints, and backtracks on conflicts.",
-    pseudocode: `function solveSudoku(board):
-  cell = findEmptyCell(board)
-  if cell is null: return true   // solved
-  for num = 1 to N:
-    if isValid(board, cell, num):
-      board[cell] = num
-      if solveSudoku(board):
-        return true
-      board[cell] = 0   // backtrack
-  return false`,
     sourceCode: `function* sudoku(size: number) {
   const board = generatePuzzle(size);
   function isValid(r: number, c: number, num: number) {
@@ -1147,18 +1011,6 @@ const gamesAlgorithms: Algorithm[] = [
     name: "Game of Life",
     description:
       "Conway's Game of Life is a cellular automaton where cells live or die based on neighbor count. A dead cell with exactly 3 neighbors becomes alive; a live cell with 2–3 neighbors survives; all others die.",
-    pseudocode: `for each generation:
-  for each cell (r, c):
-    neighbors = countLiveNeighbors(r, c)
-    if cell is alive:
-      if neighbors < 2 or neighbors > 3:
-        nextGrid[r][c] = dead
-      else:
-        nextGrid[r][c] = alive
-    else:
-      if neighbors === 3:
-        nextGrid[r][c] = alive
-  grid = nextGrid`,
     sourceCode: `function* gameOfLife(size: number) {
   const rows = size;
   const cols = Math.round(size * 1.5);
@@ -1192,16 +1044,6 @@ const gamesAlgorithms: Algorithm[] = [
     name: "Knight's Tour",
     description:
       "Finds a path for a knight to visit every square on an N×N chessboard exactly once. Uses Warnsdorff's heuristic — always move to the square with the fewest onward moves — with backtracking as fallback.",
-    pseudocode: `function knightTour(board, row, col, move):
-  board[row][col] = move
-  if move === N*N: return true
-  neighbors = getValidMoves(row, col)
-  sort neighbors by Warnsdorff degree
-  for each (nr, nc) in neighbors:
-    if knightTour(board, nr, nc, move+1):
-      return true
-  board[row][col] = 0   // backtrack
-  return false`,
     sourceCode: `function* knightTour(n: number) {
   const board = createBoard(n);
   const dx = [-2,-1,1,2, 2, 1,-1,-2];
@@ -1233,23 +1075,6 @@ const gamesAlgorithms: Algorithm[] = [
     name: "Minimax (Alpha-Beta)",
     description:
       "The Minimax algorithm evaluates game trees to find optimal moves. Alpha-Beta pruning skips branches that cannot influence the final decision, dramatically reducing the search space.",
-    pseudocode: `function minimax(node, depth, isMax, α, β):
-  if depth == 0 or node is leaf:
-    return evaluate(node)
-  if isMax:
-    value = -∞
-    for each child:
-      value = max(value, minimax(child, depth-1, false, α, β))
-      α = max(α, value)
-      if α ≥ β: break   // β cutoff
-    return value
-  else:
-    value = +∞
-    for each child:
-      value = min(value, minimax(child, depth-1, true, α, β))
-      β = min(β, value)
-      if α ≥ β: break   // α cutoff
-    return value`,
     sourceCode: `function* minimax(depth: number) {
   const tree = generateTree(depth, 3);
   function* evaluate(
@@ -1295,11 +1120,6 @@ const classicAlgorithms: Algorithm[] = [
     name: "Tower of Hanoi",
     description:
       "The Tower of Hanoi is a classic recursive puzzle. Move N discs from peg A to peg C using peg B as auxiliary, obeying the rule that no larger disc may sit atop a smaller one. The minimum solution requires 2^N − 1 moves.",
-    pseudocode: `function hanoi(n, source, target, auxiliary):
-  if n == 0: return
-  hanoi(n-1, source, auxiliary, target)
-  move disc n from source to target
-  hanoi(n-1, auxiliary, target, source)`,
     sourceCode: `function* towerOfHanoi(n: number) {
   const pegs = [
     { name: "A", discs: [1..n] },
@@ -1390,9 +1210,4 @@ export function findAlgorithm(
   algoId: string,
 ): Algorithm | undefined {
   return findCategory(categoryId)?.algorithms.find((a) => a.id === algoId);
-}
-
-/** First algorithm of a given category (used for default redirects). */
-export function defaultAlgo(categoryId: string): Algorithm | undefined {
-  return findCategory(categoryId)?.algorithms[0];
 }

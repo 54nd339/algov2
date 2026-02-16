@@ -1,15 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useRef } from "react";
-import type { Algorithm } from "@/config/algorithms";
-import { useMSTMachine } from "@/lib/hooks/useMSTMachine";
-import { getMSTAlgorithm } from "@/lib/algorithms/registry";
-import { VisualizerPanel } from "@/components/common/visualizer-panel";
-import { MSTVisualizer } from "@/components/mst/mst-visualizer";
-import { MSTControlPanel } from "@/components/mst/mst-control-panel";
-import { MSTStatsPanel } from "@/components/mst/mst-stats-panel";
-import { AlgoInfoSection } from "@/components/visualizer/algo-info-section";
-import type { MSTSnapshot } from "@/lib/types/mst";
+import { useCallback } from "react";
+import type { Algorithm } from "@/config";
+import { useMSTMachine, useAnimationLoop, useMachineHandlers } from "@/lib/hooks";
+import { getAlgorithm } from "@/lib/algorithms";
+import { VisualizerPanel } from "@/components/common";
+import { MSTVisualizer, MSTControlPanel, MSTStatsPanel } from "@/components/mst";
+import { AlgoInfoSection } from "../algo-info-section";
+import type { MSTSnapshot, MSTAlgorithmFn } from "@/lib/types";
 
 interface MSTPageProps {
   algoId: string;
@@ -17,15 +15,11 @@ interface MSTPageProps {
 }
 
 export function MSTPage({ algoId, algorithm }: MSTPageProps) {
-  const { snapshot, send } = useMSTMachine(algoId);
+  const { snapshot, send, state } = useMSTMachine(algoId);
 
-  const generatorRef = useRef<Generator<MSTSnapshot> | null>(null);
-  const rafRef = useRef<number>(0);
-  const cancelledRef = useRef(false);
-
-  const isRunning = snapshot.matches("running");
-  const isStepping = snapshot.matches("stepping");
-  const isDone = snapshot.matches("done");
+  const isRunning = state === "running";
+  const isStepping = state === "stepping";
+  const isDone = state === "done";
   const nodes = snapshot.context.nodes;
   const edges = snapshot.context.edges;
   const speed = snapshot.context.speed;
@@ -34,69 +28,45 @@ export function MSTPage({ algoId, algorithm }: MSTPageProps) {
   const stats = snapshot.context.stats;
   const mstSnapshot = snapshot.context.snapshot;
 
-  const stopLoop = useCallback(() => {
-    cancelledRef.current = true;
-    if (rafRef.current) { cancelAnimationFrame(rafRef.current); rafRef.current = 0; }
-  }, []);
-
-  const runStep = useCallback((): MSTSnapshot | null => {
-    if (!generatorRef.current) return null;
-    const next = generatorRef.current.next();
-    if (next.done) { generatorRef.current = null; return null; }
-    return next.value;
-  }, []);
-
-  const startGenerator = useCallback(() => {
-    const algoFn = getMSTAlgorithm(algoId);
-    if (!algoFn) return;
-    generatorRef.current = algoFn([...nodes], [...edges], sourceNode);
+  const createGenerator = useCallback(() => {
+    const algoFn = getAlgorithm<MSTAlgorithmFn>("mst", algoId);
+    if (!algoFn) return null;
+    return algoFn([...nodes], [...edges], sourceNode);
   }, [algoId, nodes, edges, sourceNode]);
 
-  useEffect(() => {
-    if (!isRunning) return;
-    if (!generatorRef.current) startGenerator();
-    cancelledRef.current = false;
-    let lastTime = 0;
-    const msPerFrame = 1000 / speed;
-    const tick = (timestamp: number) => {
-      if (cancelledRef.current) return;
-      if (timestamp - lastTime >= msPerFrame) {
-        lastTime = timestamp;
-        const step = runStep();
-        if (step) send({ type: "updateSnapshot", snapshot: step });
-        else { send({ type: "done" }); return; }
-      }
-      rafRef.current = requestAnimationFrame(tick);
-    };
-    rafRef.current = requestAnimationFrame(tick);
-    return () => stopLoop();
-  }, [isRunning, speed, send, runStep, startGenerator, stopLoop]);
+  const onSnapshot = useCallback(
+    (step: MSTSnapshot) => send({ type: "updateSnapshot", snapshot: step }),
+    [send],
+  );
+  const onDone = useCallback(() => send({ type: "done" }), [send]);
 
-  useEffect(() => {
-    if (!isStepping) return;
-    if (!generatorRef.current) startGenerator();
-    const step = runStep();
-    if (step) send({ type: "updateSnapshot", snapshot: step });
-    else send({ type: "done" });
-  }, [isStepping, send, runStep, startGenerator]);
+  const { clearLoop } = useAnimationLoop({
+    isRunning,
+    isStepping,
+    isIdle: state === "idle",
+    speed,
+    createGenerator,
+    onSnapshot,
+    onDone,
+  });
 
-  useEffect(() => {
-    if (snapshot.matches("idle") && generatorRef.current) {
-      stopLoop();
-      generatorRef.current = null;
-    }
-  }, [snapshot, stopLoop]);
+  const { onPlay, onPause, onStep, onReset, onSpeedChange } = useMachineHandlers(send, clearLoop);
+  const onNodeCountChange = useCallback((c: number) => { clearLoop(); send({ type: "nodeCountChange", count: c }); }, [clearLoop, send]);
+  const onGenerate = useCallback(() => { clearLoop(); send({ type: "generate" }); }, [clearLoop, send]);
+  const onNodeClick = useCallback((id: number) => {
+    if (!isRunning) send({ type: "setSource", nodeId: id });
+  }, [isRunning, send]);
 
   return (
     <div className="space-y-2">
       <MSTControlPanel
-        onPlay={() => send({ type: "play" })}
-        onPause={() => send({ type: "pause" })}
-        onStep={() => send({ type: "step" })}
-        onReset={() => { stopLoop(); generatorRef.current = null; send({ type: "reset" }); }}
-        onSpeedChange={(s) => send({ type: "speedChange", speed: s })}
-        onNodeCountChange={(c) => { stopLoop(); generatorRef.current = null; send({ type: "nodeCountChange", count: c }); }}
-        onGenerate={() => { stopLoop(); generatorRef.current = null; send({ type: "generate" }); }}
+        onPlay={onPlay}
+        onPause={onPause}
+        onStep={onStep}
+        onReset={onReset}
+        onSpeedChange={onSpeedChange}
+        onNodeCountChange={onNodeCountChange}
+        onGenerate={onGenerate}
         isRunning={isRunning}
         isDone={isDone}
         speed={speed}
@@ -108,12 +78,10 @@ export function MSTPage({ algoId, algorithm }: MSTPageProps) {
           edges={edges}
           snapshot={mstSnapshot}
           sourceNode={sourceNode}
-          onNodeClick={(id) => {
-            if (!isRunning) send({ type: "setSource", nodeId: id });
-          }}
+          onNodeClick={onNodeClick}
         />
       </VisualizerPanel>
-      <p className="px-2 text-[10px] font-space uppercase tracking-wider text-muted-foreground">
+      <p className="px-2 text-2xs font-space uppercase tracking-wider text-muted-foreground">
         Tip: click a node to set the source
       </p>
       <MSTStatsPanel

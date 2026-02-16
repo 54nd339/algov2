@@ -3,3 +3,8 @@ export { sudoku } from "./sudoku";
 export { gameOfLife } from "./game-of-life";
 export { knightTour } from "./knight-tour";
 export { minimax } from "./minimax";
+export { toggleLifeCell, setKnightStart } from "./board-actions";
+export { layoutTree } from "./tree-layout";
+export { statusColors, getCellSize, cellContent, sudokuBorderStyle } from "./board-layout";
+export { buildGamesStatCells, type StatCellData } from "./stats-helpers";
+export { GAMES_SIZE_CONFIG, GAMES_VARIANT, sudokuBoxSize, buildGameOptions } from "./config";

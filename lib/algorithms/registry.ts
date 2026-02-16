@@ -1,10 +1,3 @@
-import type { AlgorithmSnapshot } from "@/lib/types/algorithms";
-import type { PathfindingAlgorithmFn } from "@/lib/types/pathfinding";
-import type { GraphAlgorithmFn } from "@/lib/types/graph";
-import type { MSTAlgorithmFn } from "@/lib/types/mst";
-import type { AIAlgorithmFn } from "@/lib/types/ai";
-import type { GamesAlgorithmFn } from "@/lib/types/games";
-import type { ClassicAlgorithmFn } from "@/lib/types/classic";
 import {
   bubbleSort,
   insertionSort,
@@ -35,6 +28,7 @@ import {
   linearRegression,
   knn,
   kMeans,
+  perceptron,
 } from "@/lib/algorithms/ai";
 import {
   nQueen,
@@ -45,103 +39,67 @@ import {
 } from "@/lib/algorithms/games";
 import { towerOfHanoi } from "@/lib/algorithms/classic";
 
-type AlgorithmFn = (
-  array: number[],
-  target?: number,
-) => Generator<AlgorithmSnapshot>;
+/* eslint-disable @typescript-eslint/no-explicit-any -- algorithm signatures vary per category (sorting takes array, pathfinding takes grid, etc.), making a single generic type impractical */
 
-const registry: Record<string, Record<string, AlgorithmFn>> = {
+/**
+ * Single unified registry keyed by category → algorithmId → generator function.
+ * Consumers cast to the correct type via the typed getter overloads.
+ */
+const registry: Record<string, Record<string, any>> = {
   sorting: {
-    "bubble-sort": bubbleSort as AlgorithmFn,
-    "insertion-sort": insertionSort as AlgorithmFn,
-    "selection-sort": selectionSort as AlgorithmFn,
-    "merge-sort": mergeSort as AlgorithmFn,
-    "quick-sort": quickSort as AlgorithmFn,
-    "heap-sort": heapSort as AlgorithmFn,
-    "radix-sort": radixSort as AlgorithmFn,
+    "bubble-sort": bubbleSort,
+    "insertion-sort": insertionSort,
+    "selection-sort": selectionSort,
+    "merge-sort": mergeSort,
+    "quick-sort": quickSort,
+    "heap-sort": heapSort,
+    "radix-sort": radixSort,
   },
   searching: {
-    "linear-search": linearSearch as AlgorithmFn,
-    "binary-search": binarySearch as AlgorithmFn,
-    "jump-search": jumpSearch as AlgorithmFn,
+    "linear-search": linearSearch,
+    "binary-search": binarySearch,
+    "jump-search": jumpSearch,
+  },
+  "path-finding": {
+    "depth-first-search": pfDfs,
+    "breadth-first-search": pfBfs,
+    dijkstra: pfDijkstra,
+    "a-star": aStar,
+  },
+  "shortest-path": {
+    dijkstra: spDijkstra,
+    "bellman-ford": bellmanFord,
+    "floyd-warshall": floydWarshall,
+  },
+  mst: {
+    prim,
+    kruskal,
+  },
+  ai: {
+    "linear-regression": linearRegression,
+    knn,
+    "k-means": kMeans,
+    perceptron,
+  },
+  games: {
+    "n-queen": nQueen,
+    sudoku,
+    "game-of-life": gameOfLife,
+    "knight-tour": knightTour,
+    minimax,
+  },
+  classic: {
+    "tower-of-hanoi": towerOfHanoi,
   },
 };
 
-const pathfindingRegistry: Record<string, PathfindingAlgorithmFn> = {
-  "depth-first-search": pfDfs,
-  "breadth-first-search": pfBfs,
-  dijkstra: pfDijkstra,
-  "a-star": aStar,
-};
-
-const graphRegistry: Record<string, GraphAlgorithmFn> = {
-  dijkstra: spDijkstra,
-  "bellman-ford": bellmanFord,
-  "floyd-warshall": floydWarshall,
-};
-
-const mstRegistry: Record<string, MSTAlgorithmFn> = {
-  prim,
-  kruskal,
-};
-
-const aiRegistry: Record<string, AIAlgorithmFn> = {
-  "linear-regression": linearRegression,
-  knn,
-  "k-means": kMeans,
-};
-
-const gamesRegistry: Record<string, GamesAlgorithmFn> = {
-  "n-queen": nQueen,
-  sudoku,
-  "game-of-life": gameOfLife,
-  "knight-tour": knightTour,
-  minimax,
-};
-
-export function getAlgorithm(
+/**
+ * Look up any algorithm by its category and id.
+ * Returns `undefined` if the combination doesn't exist.
+ */
+export function getAlgorithm<T = any>(
   category: string,
   algorithmId: string,
-): AlgorithmFn | undefined {
-  return registry[category]?.[algorithmId];
-}
-
-export function getPathfindingAlgorithm(
-  algorithmId: string,
-): PathfindingAlgorithmFn | undefined {
-  return pathfindingRegistry[algorithmId];
-}
-
-export function getGraphAlgorithm(
-  algorithmId: string,
-): GraphAlgorithmFn | undefined {
-  return graphRegistry[algorithmId];
-}
-
-export function getMSTAlgorithm(
-  algorithmId: string,
-): MSTAlgorithmFn | undefined {
-  return mstRegistry[algorithmId];
-}
-
-export function getAIAlgorithm(
-  algorithmId: string,
-): AIAlgorithmFn | undefined {
-  return aiRegistry[algorithmId];
-}
-
-export function getGamesAlgorithm(
-  algorithmId: string,
-): GamesAlgorithmFn | undefined {
-  return gamesRegistry[algorithmId];
-}
-
-const classicRegistry: Record<string, ClassicAlgorithmFn> = {
-  "tower-of-hanoi": towerOfHanoi,
-};
-
-export function getClassicAlgorithm(
-  algorithmId: string,
-): ClassicAlgorithmFn | undefined {
-  return classicRegistry[algorithmId];
+): T | undefined {
+  return registry[category]?.[algorithmId] as T | undefined;
 }

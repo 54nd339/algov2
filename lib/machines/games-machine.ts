@@ -1,5 +1,6 @@
 import { assign, setup } from "xstate";
-import type { GamesContext, GamesEvent, GamesSnapshot, GamesStats } from "@/lib/types/games";
+import type { GamesContext, GamesEvent, GamesSnapshot, GamesStats } from "@/lib/types";
+import { visualizerStates } from "./visualizer-machine";
 
 const DEFAULT_BOARD_SIZE: Record<string, number> = {
   "n-queen": 8,
@@ -20,10 +21,7 @@ export function createGamesMachine(algorithmId: string) {
   const defaultSize = DEFAULT_BOARD_SIZE[algorithmId] ?? 8;
 
   return setup({
-    types: {
-      context: {} as GamesContext,
-      events: {} as GamesEvent,
-    },
+    types: { context: {} as GamesContext, events: {} as GamesEvent },
   }).createMachine({
     id: `games-${algorithmId}`,
     initial: "idle",
@@ -49,109 +47,17 @@ export function createGamesMachine(algorithmId: string) {
         })),
       },
       generate: {
-        actions: assign(() => ({
-          stats: resetStats(),
-          stepIndex: 0,
-          snapshot: null,
-        })),
+        actions: assign(() => ({ stats: resetStats(), stepIndex: 0, snapshot: null })),
       },
     },
-    states: {
-      idle: {
-        on: {
-          play: "running",
-          step: "stepping",
-          reset: {
-            actions: assign(() => ({
-              stats: resetStats(),
-              stepIndex: 0,
-              snapshot: null,
-            })),
-          },
-          updateSnapshot: {
-            actions: assign({
-              snapshot: ({ event }) =>
-                "snapshot" in event ? (event.snapshot as GamesSnapshot) : null,
-            }),
-          },
-        },
-      },
-      running: {
-        on: {
-          pause: "paused",
-          reset: {
-            target: "idle",
-            actions: assign(() => ({
-              stats: resetStats(),
-              stepIndex: 0,
-              snapshot: null,
-            })),
-          },
-          updateSnapshot: {
-            actions: assign({
-              snapshot: ({ event }) =>
-                "snapshot" in event ? (event.snapshot as GamesSnapshot) : null,
-              stepIndex: ({ context }) => context.stepIndex + 1,
-            }),
-          },
-          done: "done",
-        },
-      },
-      paused: {
-        on: {
-          play: "running",
-          step: "stepping",
-          reset: {
-            target: "idle",
-            actions: assign(() => ({
-              stats: resetStats(),
-              stepIndex: 0,
-              snapshot: null,
-            })),
-          },
-        },
-      },
-      stepping: {
-        on: {
-          updateSnapshot: {
-            target: "paused",
-            actions: assign({
-              snapshot: ({ event }) =>
-                "snapshot" in event ? (event.snapshot as GamesSnapshot) : null,
-              stepIndex: ({ context }) => context.stepIndex + 1,
-            }),
-          },
-          play: "running",
-          reset: {
-            target: "idle",
-            actions: assign(() => ({
-              stats: resetStats(),
-              stepIndex: 0,
-              snapshot: null,
-            })),
-          },
-        },
-      },
-      done: {
-        on: {
-          reset: {
-            target: "idle",
-            actions: assign(() => ({
-              stats: resetStats(),
-              stepIndex: 0,
-              snapshot: null,
-            })),
-          },
-          generate: {
-            target: "idle",
-            actions: assign(() => ({
-              stats: resetStats(),
-              stepIndex: 0,
-              snapshot: null,
-            })),
-          },
-        },
-      },
-    },
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- visualizerStates returns a generic shape; XState's createMachine types can't infer the concrete state config
+    states: visualizerStates({
+      onReset: () => ({ stats: resetStats(), stepIndex: 0, snapshot: null }),
+      onSnapshot: (event, ctx) => ({
+        snapshot: "snapshot" in event ? (event.snapshot as GamesSnapshot) : null,
+        stepIndex: ctx.stepIndex + 1,
+      }),
+      idleAcceptsSnapshot: true,
+    }) as any,
   });
 }

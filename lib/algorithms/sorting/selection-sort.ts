@@ -1,4 +1,4 @@
-import type { AlgorithmSnapshot, AlgorithmStats } from "@/lib/types/algorithms";
+import type { AlgorithmSnapshot, AlgorithmStats } from "@/lib/types";
 
 export function* selectionSort(array: number[]) {
   const result = [...array];
@@ -25,6 +25,7 @@ export function* selectionSort(array: number[]) {
       yield {
         array: [...result],
         comparing: [minIndex, j],
+        special: minIndex,
         stats,
       } as AlgorithmSnapshot;
 
@@ -48,6 +49,7 @@ export function* selectionSort(array: number[]) {
       yield {
         array: [...result],
         comparing: [i, minIndex],
+        swapping: [i, minIndex],
         stats: swapStats,
       } as AlgorithmSnapshot;
     }

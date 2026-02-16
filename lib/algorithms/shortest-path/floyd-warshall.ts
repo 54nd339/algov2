@@ -2,14 +2,10 @@ import type {
   GraphNode,
   GraphEdge,
   GraphSnapshot,
-  GraphStats,
   NodeStatus,
   EdgeStatus,
-} from "@/lib/types/graph";
-
-function makeStats(visited: number, relaxed: number, dist: number): GraphStats {
-  return { nodesVisited: visited, edgesRelaxed: relaxed, totalDistance: dist, timeElapsed: 0 };
-}
+} from "@/lib/types";
+import { makeGraphStats as makeStats } from "./graph-utils";
 
 export function* floydWarshall(
   nodes: GraphNode[],
@@ -23,7 +19,6 @@ export function* floydWarshall(
   for (const n of nodes) nodeStatuses[n.id] = n.id === sourceNode ? "source" : "idle";
   for (const e of edges) edgeStatuses[e.id] = "idle";
 
-  // Initialize distance matrix
   const dist: Record<number, Record<number, number>> = {};
   for (const i of ids) {
     dist[i] = {};
@@ -46,7 +41,6 @@ export function* floydWarshall(
     stats: makeStats(0, 0, 0),
   };
 
-  // Floyd-Warshall main triple loop
   for (const k of ids) {
     nodeStatuses[k] = k === sourceNode ? "source" : "active";
 
@@ -70,12 +64,10 @@ export function* floydWarshall(
     nodeStatuses[k] = k === sourceNode ? "source" : "visited";
   }
 
-  // Final: mark edges in shortest path tree from source
   for (const n of nodes) {
     if (n.id === sourceNode) continue;
     if (dist[sourceNode][n.id] === Infinity) continue;
 
-    // Find edge on the shortest path to this node
     for (const e of edges) {
       const eu = e.u, ev = e.v;
       if (

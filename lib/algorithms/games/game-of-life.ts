@@ -1,4 +1,4 @@
-import type { BoardCell, GamesSnapshot, LifeStats } from "@/lib/types/games";
+import type { BoardCell, GamesSnapshot, LifeStats } from "@/lib/types";
 
 /* ── Conway's Game of Life ─────────────────────────────────────── */
 
@@ -11,7 +11,6 @@ export function* gameOfLife(
   const maxGenerations = 200;
   const startTime = performance.now();
 
-  // Use provided initial board or generate randomly (~30% alive)
   let board: BoardCell[][] = options?.initialBoard
     ? options.initialBoard.map((row) => row.map((c) => ({ ...c })))
     : Array.from({ length: rows }, (_, r) =>
@@ -78,7 +77,6 @@ export function* gameOfLife(
     board = next;
     yield snap(gen);
 
-    // Stop if all dead
     if (board.flat().every((c) => c.value === 0)) break;
   }
 }

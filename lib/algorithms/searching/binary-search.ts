@@ -1,4 +1,4 @@
-import type { SearchingSnapshot, AlgorithmStats } from "@/lib/types/algorithms";
+import type { SearchingSnapshot, AlgorithmStats } from "@/lib/types";
 
 export function* binarySearch(array: number[], target: number) {
   let left = 0;

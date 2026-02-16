@@ -1,4 +1,4 @@
-import type { AlgorithmSnapshot, AlgorithmStats } from "@/lib/types/algorithms";
+import type { AlgorithmSnapshot, AlgorithmStats } from "@/lib/types";
 
 export function* mergeSort(array: number[]) {
   const result = [...array];
@@ -51,14 +51,32 @@ export function* mergeSort(array: number[]) {
 
       if (leftArr[i] <= rightArr[j]) {
         arr[k] = leftArr[i];
+        swaps++;
+        accesses++;
+
+        yield {
+          array: [...arr],
+          comparing: [left + i, mid + 1 + j],
+          swapping: [k, left + i],
+          stats: { comparisons, swaps, accesses, timeElapsed: Math.round(performance.now() - startTime) },
+        } as AlgorithmSnapshot;
+
         i++;
       } else {
         arr[k] = rightArr[j];
+        swaps++;
+        accesses++;
+
+        yield {
+          array: [...arr],
+          comparing: [left + i, mid + 1 + j],
+          swapping: [k, mid + 1 + j],
+          stats: { comparisons, swaps, accesses, timeElapsed: Math.round(performance.now() - startTime) },
+        } as AlgorithmSnapshot;
+
         j++;
       }
-      swaps++;
       k++;
-      accesses++;
     }
 
     while (i < leftArr.length) {

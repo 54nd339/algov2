@@ -17,11 +17,6 @@
   --color-sidebar-primary: var(--sidebar-primary);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar: var(--sidebar);
-  --color-chart-5: var(--chart-5);
-  --color-chart-4: var(--chart-4);
-  --color-chart-3: var(--chart-3);
-  --color-chart-2: var(--chart-2);
-  --color-chart-1: var(--chart-1);
   --color-ring: var(--ring);
   --color-input: var(--input);
   --color-border: var(--border);
@@ -48,12 +43,24 @@
 
   /* ── AlgoViz custom tokens ──────────────────────────────────────────── */
   --color-algo-green: var(--algo-green);
-  --color-algo-green-bg: var(--algo-green-bg);
+  --algo-grid-line: var(--algo-grid-line);
   --color-algo-cyan: var(--algo-cyan);
   --color-algo-red: var(--algo-red);
   --color-algo-yellow: var(--algo-yellow);
   --color-algo-blue: var(--algo-blue);
   --color-algo-purple: var(--algo-purple);
+
+  /* ── Custom sizing tokens (avoids arbitrary [] values) ───────────────── */
+  --font-size-2xs: 0.625rem;   /* 10px — small labels & tracking text */
+  --font-size-3xs: 0.5625rem;  /* 9px  — tiny inline annotations */
+  --border-width-8: 8px;
+  --border-width-10: 10px;
+  --min-height-panel: 65vh;
+  --height-panel-control: 70px;
+
+  /* ── Collapsible animations ──────────────────────────────────────────── */
+  --animate-expand: collapsible-expand 0.2s ease-out;
+  --animate-collapse: collapsible-collapse 0.2s ease-out;
 }
 
 :root {
@@ -76,11 +83,6 @@
   --border: oklch(0.929 0.013 255.508);
   --input: oklch(0.929 0.013 255.508);
   --ring: oklch(0.704 0.04 256.788);
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
   --sidebar: oklch(0.984 0.003 247.858);
   --sidebar-foreground: oklch(0.129 0.042 264.695);
   --sidebar-primary: oklch(0.208 0.042 265.755);
@@ -92,24 +94,27 @@
 
   /* ── AlgoViz identity colors (light) ────────────────────────────────── */
   --algo-green: #059033;
-  --algo-green-bg: #e6f5eb;
   --algo-cyan: #0878a0;
   --algo-red: #dc2626;
   --algo-yellow: #a16b00;
   --algo-blue: #2563eb;
   --algo-purple: #7c22c9;
 
+  /* Derived from --algo-green so grid lines stay in sync with the brand */
+  --algo-grid-line: color-mix(in srgb, var(--algo-green) 6%, transparent);
+
   /* ── Bar visualization colors (light) ──────────────────────────────── */
-  --bar-default: #059033;
-  --bar-default-border: #06c244;
-  --bar-comparing: #2563eb;
-  --bar-comparing-border: #5b8def;
-  --bar-swap: #7c22c9;
-  --bar-swap-border: #a855f7;
-  --bar-sorted: #059033;
-  --bar-sorted-border: #06c244;
-  --bar-special: #dc2626;
-  --bar-special-border: #f87171;
+  /* Borders are lighter tints of the brand color for contrast against the solid fill */
+  --bar-default: var(--algo-green);
+  --bar-default-border: color-mix(in srgb, var(--algo-green) 70%, white);
+  --bar-comparing: var(--algo-blue);
+  --bar-comparing-border: color-mix(in srgb, var(--algo-blue) 70%, white);
+  --bar-sorted: var(--algo-green);
+  --bar-sorted-border: color-mix(in srgb, var(--algo-green) 70%, white);
+  --bar-swapping: var(--algo-purple);
+  --bar-swapping-border: color-mix(in srgb, var(--algo-purple) 70%, white);
+  --bar-special: var(--algo-red);
+  --bar-special-border: color-mix(in srgb, var(--algo-red) 70%, white);
 }
 
 .dark {
@@ -131,11 +136,6 @@
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
   --ring: oklch(0.551 0.027 264.364);
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
   --sidebar: oklch(0.208 0.042 265.755);
   --sidebar-foreground: oklch(0.984 0.003 247.858);
   --sidebar-primary: oklch(0.488 0.243 264.376);
@@ -147,24 +147,27 @@
 
   /* ── AlgoViz identity colors (dark) ─────────────────────────────────── */
   --algo-green: #1efe5b;
-  --algo-green-bg: #0e180f;
   --algo-cyan: #46bcde;
   --algo-red: #ff483b;
   --algo-yellow: #e5c454;
   --algo-blue: #4383ff;
   --algo-purple: #db29e1;
 
+  /* Derived from --algo-green so grid lines stay in sync with the brand */
+  --algo-grid-line: color-mix(in srgb, var(--algo-green) 6%, transparent);
+
   /* ── Bar visualization colors (dark) ───────────────────────────────── */
+  /* Bar fills are intentionally darker than the identity colors for contrast */
   --bar-default: #017501;
-  --bar-default-border: #1efe5b;
+  --bar-default-border: var(--algo-green);
   --bar-comparing: #100175;
-  --bar-comparing-border: #4383ff;
-  --bar-swap: #600382;
-  --bar-swap-border: #db29e1;
+  --bar-comparing-border: var(--algo-blue);
   --bar-sorted: #017501;
-  --bar-sorted-border: #1efe5b;
+  --bar-sorted-border: var(--algo-green);
+  --bar-swapping: #3a0175;
+  --bar-swapping-border: var(--algo-purple);
   --bar-special: #75012c;
-  --bar-special-border: #ff483b;
+  --bar-special-border: var(--algo-red);
 }
 
 /* ── Base layer ───────────────────────────────────────────────────────────── */
@@ -186,12 +189,38 @@
   --color-bar-default-border: var(--bar-default-border);
   --color-bar-comparing: var(--bar-comparing);
   --color-bar-comparing-border: var(--bar-comparing-border);
-  --color-bar-swap: var(--bar-swap);
-  --color-bar-swap-border: var(--bar-swap-border);
   --color-bar-sorted: var(--bar-sorted);
   --color-bar-sorted-border: var(--bar-sorted-border);
+  --color-bar-swapping: var(--bar-swapping);
+  --color-bar-swapping-border: var(--bar-swapping-border);
   --color-bar-special: var(--bar-special);
   --color-bar-special-border: var(--bar-special-border);
+}
+
+/* ── Layout utilities -----------------------------─────────────────────── */
+
+@utility bg-grid-pattern {
+  background-size: 40px 40px;
+}
+
+@utility grid-cols-label-value {
+  grid-template-columns: 1fr auto;
+}
+
+@utility grid-cols-info-split {
+  grid-template-columns: 2fr 1fr;
+}
+
+/* ── Collapsible expand/collapse ───────────────────────────────────────── */
+
+@keyframes collapsible-expand {
+  from { height: 0; opacity: 0; }
+  to { height: var(--radix-collapsible-content-height); opacity: 1; }
+}
+
+@keyframes collapsible-collapse {
+  from { height: var(--radix-collapsible-content-height); opacity: 1; }
+  to { height: 0; opacity: 0; }
 }
 
 /* ── Scrollbar ────────────────────────────────────────────────────────────── */
@@ -206,12 +235,12 @@
 }
 
 *::-webkit-scrollbar-thumb {
-  background-color: hsl(0 0% 40% / 0.3);
+  background-color: color-mix(in srgb, var(--muted-foreground) 30%, transparent);
   border-radius: 3px;
 }
 
 .dark *::-webkit-scrollbar-thumb {
-  background-color: hsl(0 0% 60% / 0.2);
+  background-color: color-mix(in srgb, var(--muted-foreground) 20%, transparent);
 }
 
 /* ── Pathfinding grid cell animations ─────────────────────────────────── */
@@ -267,6 +296,23 @@
 
 .cell-wall {
   animation: cell-wall-anim 0.15s ease-out forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cell-visited,
+  .cell-path,
+  .cell-wall {
+    animation: none;
+  }
+
+  /* Disable Shadcn/ui popover, tooltip, and sheet enter/exit animations */
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
 /* ── ReactFlow overrides for graph visualizer ─────────────────────────── */

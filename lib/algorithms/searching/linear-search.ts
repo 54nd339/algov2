@@ -1,4 +1,4 @@
-import type { SearchingSnapshot, AlgorithmStats } from "@/lib/types/algorithms";
+import type { SearchingSnapshot, AlgorithmStats } from "@/lib/types";
 
 export function* linearSearch(array: number[], target: number) {
   let comparisons = 0;

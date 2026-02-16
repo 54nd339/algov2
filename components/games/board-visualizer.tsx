@@ -1,22 +1,10 @@
 "use client";
 
-import type { BoardCell, CellStatus } from "@/lib/types/games";
-
-/* ── Color mapping ─────────────────────────────────────────────── */
-
-const statusColors: Record<CellStatus, string> = {
-  empty: "transparent",
-  active: "var(--algo-purple)",
-  valid: "var(--algo-green)",
-  invalid: "var(--algo-red)",
-  placed: "var(--algo-cyan)",
-  path: "var(--algo-yellow)",
-  alive: "var(--algo-green)",
-  dead: "transparent",
-  conflict: "var(--algo-red)",
-};
-
-/* ── Main component ────────────────────────────────────────────── */
+import { memo, useCallback } from "react";
+import type { BoardCell } from "@/lib/types";
+import { statusColors, getCellSize, cellContent, sudokuBorderStyle } from "@/lib/algorithms/games";
+import { ScrollArea } from "@/components/ui";
+import { EmptyVisualizerState } from "@/components/common";
 
 interface BoardVisualizerProps {
   board: BoardCell[][] | null;
@@ -26,21 +14,31 @@ interface BoardVisualizerProps {
 }
 
 export function BoardVisualizer({ board, variant, boxSize, onCellClick }: BoardVisualizerProps) {
+  // Event-delegated click handler avoids per-cell closures
+  const handleClick = useCallback(
+    (e: React.MouseEvent) => {
+      if (!onCellClick) return;
+      const el = (e.target as HTMLElement).closest<HTMLElement>("[data-row]");
+      if (!el) return;
+      const r = el.dataset.row;
+      const c = el.dataset.col;
+      if (r !== undefined && c !== undefined) onCellClick(Number(r), Number(c));
+    },
+    [onCellClick],
+  );
+
   if (!board || board.length === 0) {
-    return (
-      <div className="flex h-full w-full items-center justify-center font-space text-muted-foreground">
-        Press Play to start
-      </div>
-    );
+    return <EmptyVisualizerState />;
   }
 
   const rows = board.length;
   const cols = board[0].length;
-  const cellSize = getCellSize(rows, cols, variant);
+  const size = getCellSize(rows, cols, variant);
   const isLife = variant === "life";
 
   return (
-    <div className="flex h-full w-full items-center justify-center overflow-auto p-4">
+    <ScrollArea className="h-full w-full">
+      <div className="flex items-center justify-center p-4">
       <div
         className="inline-grid border border-border"
         style={
@@ -55,65 +53,57 @@ export function BoardVisualizer({ board, variant, boxSize, onCellClick }: BoardV
                 gridAutoRows: "1fr",
               }
             : {
-                gridTemplateColumns: `repeat(${cols}, ${cellSize}px)`,
-                gridTemplateRows: `repeat(${rows}, ${cellSize}px)`,
+                gridTemplateColumns: `repeat(${cols}, ${size}px)`,
+                gridTemplateRows: `repeat(${rows}, ${size}px)`,
               }
         }
+        onClick={onCellClick ? handleClick : undefined}
       >
         {board.flat().map((cell) => (
           <BoardCellComponent
             key={`${cell.row}-${cell.col}`}
             cell={cell}
-            size={isLife ? undefined : cellSize}
+            size={isLife ? undefined : size}
             variant={variant}
             boxSize={boxSize}
             boardSize={rows}
-            onCellClick={onCellClick}
+            clickable={!!onCellClick}
           />
         ))}
       </div>
-    </div>
+      </div>
+    </ScrollArea>
   );
 }
 
-/* ── Cell component ────────────────────────────────────────────── */
-
-function BoardCellComponent({
+const BoardCellComponent = memo(function BoardCellComponent({
   cell,
   size,
   variant,
   boxSize,
   boardSize,
-  onCellClick,
+  clickable,
 }: {
   cell: BoardCell;
   size?: number;
   variant: string;
   boxSize?: number;
   boardSize: number;
-  onCellClick?: (row: number, col: number) => void;
+  clickable: boolean;
 }) {
   const bg = statusColors[cell.status] ?? "transparent";
   const isCheckerDark = (cell.row + cell.col) % 2 === 1;
   const checkerBg = isCheckerDark ? "var(--muted)" : "transparent";
 
-  // Sudoku: thick borders on box boundaries
-  const sudokuBorder =
+  const extraBorder =
     variant === "sudoku" && boxSize
-      ? {
-          borderRight:
-            (cell.col + 1) % boxSize === 0 && cell.col + 1 < boardSize
-              ? "2px solid var(--foreground)"
-              : undefined,
-          borderBottom:
-            (cell.row + 1) % boxSize === 0 && cell.row + 1 < boardSize
-              ? "2px solid var(--foreground)"
-              : undefined,
-        }
+      ? sudokuBorderStyle(cell, boxSize, boardSize)
       : {};
 
   return (
     <div
+      data-row={cell.row}
+      data-col={cell.col}
       className="flex items-center justify-center font-space text-xs font-bold transition-colors"
       style={{
         width: size,
@@ -126,41 +116,11 @@ function BoardCellComponent({
           cell.status !== "empty" && cell.status !== "dead"
             ? "var(--background)"
             : "var(--muted-foreground)",
-        cursor: onCellClick ? "pointer" : undefined,
-        ...sudokuBorder,
+        cursor: clickable ? "pointer" : undefined,
+        ...extraBorder,
       }}
-      onClick={onCellClick ? () => onCellClick(cell.row, cell.col) : undefined}
     >
-      {renderContent(cell, variant)}
+      {cellContent(cell, variant)}
     </div>
   );
-}
-
-function renderContent(cell: BoardCell, variant: string): string {
-  switch (variant) {
-    case "queen":
-      return cell.value === 1 ? "♛" : "";
-    case "sudoku":
-      return cell.value > 0 ? String(cell.value) : "";
-    case "knight":
-      return cell.value > 0 ? String(cell.value) : "";
-    case "life":
-      return cell.value === 1 ? "●" : "";
-    default:
-      return "";
-  }
-}
-
-function getCellSize(rows: number, cols: number, variant: string): number {
-  if (variant === "life") return 16;
-  if (variant === "sudoku") return 40;
-  const maxDim = Math.max(rows, cols);
-  if (maxDim <= 6) return 56;
-  if (maxDim <= 8) return 44;
-  if (maxDim <= 12) return 36;
-  return 28;
-}
-
-// Workaround to suppress TS unused warning — board is used via parent props
-const board = null;
-void board;
+});

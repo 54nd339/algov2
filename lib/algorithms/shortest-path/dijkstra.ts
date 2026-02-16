@@ -2,15 +2,10 @@ import type {
   GraphNode,
   GraphEdge,
   GraphSnapshot,
-  GraphStats,
   NodeStatus,
   EdgeStatus,
-} from "@/lib/types/graph";
-import { buildAdjacencyList } from "./graph-utils";
-
-function makeStats(visited: number, relaxed: number, dist: number): GraphStats {
-  return { nodesVisited: visited, edgesRelaxed: relaxed, totalDistance: dist, timeElapsed: 0 };
-}
+} from "@/lib/types";
+import { buildAdjacencyList, makeGraphStats as makeStats } from "./graph-utils";
 
 export function* dijkstra(
   nodes: GraphNode[],
@@ -40,7 +35,6 @@ export function* dijkstra(
   };
 
   while (unvisited.size > 0) {
-    // Find closest unvisited
     let u = -1;
     let minDist = Infinity;
     for (const id of unvisited) {
@@ -55,7 +49,6 @@ export function* dijkstra(
     visited.add(u);
     if (u !== sourceNode) nodeStatuses[u] = "visited";
 
-    // Relax neighbors
     for (const { to: v, weight, edgeId } of adj.get(u) ?? []) {
       if (visited.has(v)) continue;
       const newDist = distances[u] + weight;
@@ -90,7 +83,6 @@ export function* dijkstra(
     };
   }
 
-  // Build shortest path tree — highlight edges used
   for (const n of nodes) {
     if (n.id !== sourceNode && prev[n.id] !== null) {
       const p = prev[n.id]!;

@@ -1,9 +1,5 @@
-"use client";
-
-import type { Algorithm } from "@/config/algorithms";
-import { InfoPanel } from "@/components/common/info-panel";
-import { CodeDisplay } from "@/components/common/code-display";
-import { ComplexityPanel } from "@/components/common/complexity-panel";
+import type { Algorithm } from "@/config";
+import { InfoPanel, CodeDisplay, ComplexityPanel } from "@/components/common";
 
 interface AlgoInfoSectionProps {
   algorithm: Algorithm;
@@ -12,8 +8,8 @@ interface AlgoInfoSectionProps {
 export function AlgoInfoSection({ algorithm }: AlgoInfoSectionProps) {
   return (
     <>
-      <div className="border border-border bg-card py-5 text-center">
-        <h2 className="font-space text-lg font-bold uppercase tracking-widest text-foreground">
+      <div className="flex h-28 items-center justify-center border border-border bg-algo-green/10">
+        <h2 className="font-space text-xl font-bold uppercase tracking-widest text-foreground md:text-2xl">
           More About {algorithm.name}
         </h2>
       </div>
@@ -21,7 +17,6 @@ export function AlgoInfoSection({ algorithm }: AlgoInfoSectionProps) {
         leftContent={
           <CodeDisplay
             description={algorithm.description}
-            pseudocode={algorithm.pseudocode}
             sourceCode={algorithm.sourceCode}
           />
         }

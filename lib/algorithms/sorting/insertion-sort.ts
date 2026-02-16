@@ -1,4 +1,4 @@
-import type { AlgorithmSnapshot, AlgorithmStats } from "@/lib/types/algorithms";
+import type { AlgorithmSnapshot, AlgorithmStats } from "@/lib/types";
 
 export function* insertionSort(array: number[]) {
   const result = [...array];
@@ -26,6 +26,7 @@ export function* insertionSort(array: number[]) {
       yield {
         array: [...result],
         comparing: [j, i],
+        special: i,
         stats,
       } as AlgorithmSnapshot;
 
