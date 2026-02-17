@@ -1,11 +1,9 @@
-import type { AlgorithmSnapshot, AlgorithmStats } from "@/lib/types";
+import type { AlgorithmSnapshot } from "@/lib/types";
+import { createTracker, createTrackedArray } from "@/lib/algorithms/shared";
 
 export function* heapSort(array: number[]) {
-  const result = [...array];
-  let comparisons = 0;
-  let swaps = 0;
-  let accesses = 0;
-  const startTime = performance.now();
+  const tracker = createTracker();
+  const result = createTrackedArray([...array], tracker);
 
   function* heapify(
     arr: number[],
@@ -17,20 +15,12 @@ export function* heapSort(array: number[]) {
     const right = 2 * i + 2;
 
     if (left < n) {
-      comparisons++;
-      accesses += 2;
-
-      const stats: AlgorithmStats = {
-        comparisons,
-        swaps,
-        accesses,
-        timeElapsed: Math.round(performance.now() - startTime),
-      };
+      tracker.compare();
 
       yield {
-        array: [...arr],
+        array: tracker.raw(arr),
         comparing: [largest, left],
-        stats,
+        stats: tracker.snapshot(),
       } as AlgorithmSnapshot;
 
       if (arr[left] > arr[largest]) {
@@ -39,20 +29,12 @@ export function* heapSort(array: number[]) {
     }
 
     if (right < n) {
-      comparisons++;
-      accesses += 2;
-
-      const stats: AlgorithmStats = {
-        comparisons,
-        swaps,
-        accesses,
-        timeElapsed: Math.round(performance.now() - startTime),
-      };
+      tracker.compare();
 
       yield {
-        array: [...arr],
+        array: tracker.raw(arr),
         comparing: [largest, right],
-        stats,
+        stats: tracker.snapshot(),
       } as AlgorithmSnapshot;
 
       if (arr[right] > arr[largest]) {
@@ -61,22 +43,13 @@ export function* heapSort(array: number[]) {
     }
 
     if (largest !== i) {
-      [arr[i], arr[largest]] = [arr[largest], arr[i]];
-      swaps++;
-      accesses += 2;
-
-      const swapStats: AlgorithmStats = {
-        comparisons,
-        swaps,
-        accesses,
-        timeElapsed: Math.round(performance.now() - startTime),
-      };
+      tracker.swap(arr, i, largest);
 
       yield {
-        array: [...arr],
+        array: tracker.raw(arr),
         comparing: [i, largest],
         swapping: [i, largest],
-        stats: swapStats,
+        stats: tracker.snapshot(),
       } as AlgorithmSnapshot;
 
       yield* heapify(arr, n, largest);
@@ -90,39 +63,24 @@ export function* heapSort(array: number[]) {
   }
 
   for (let i = n - 1; i > 0; i--) {
-    [result[0], result[i]] = [result[i], result[0]];
-    swaps++;
-    accesses += 2;
-
-    const stats: AlgorithmStats = {
-      comparisons,
-      swaps,
-      accesses,
-      timeElapsed: Math.round(performance.now() - startTime),
-    };
+    tracker.swap(result, 0, i);
 
     yield {
-      array: [...result],
+      array: tracker.raw(result),
       comparing: [0, i],
       swapping: [0, i],
       special: 0,
-      stats,
+      stats: tracker.snapshot(),
     } as AlgorithmSnapshot;
 
     yield* heapify(result, i, 0);
   }
 
   const sorted = Array.from({ length: result.length }, (_, i) => i);
-  const finalStats: AlgorithmStats = {
-    comparisons,
-    swaps,
-    accesses,
-    timeElapsed: Math.round(performance.now() - startTime),
-  };
 
   yield {
-    array: result,
+    array: tracker.raw(result),
     sorted,
-    stats: finalStats,
+    stats: tracker.snapshot(),
   } as AlgorithmSnapshot;
 }

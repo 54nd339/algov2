@@ -1,5 +1,5 @@
 import { assign, setup } from "xstate";
-import type { MSTContext, MSTEvent, MSTSnapshot, MSTStats } from "@/lib/types";
+import type { MSTContext, MSTEvent, MSTSnapshot, MSTStats, GraphNode, GraphEdge } from "@/lib/types";
 import { generateRandomGraph } from "@/lib/algorithms/shortest-path";
 import { visualizerStates } from "./visualizer-machine";
 
@@ -12,10 +12,19 @@ const resetStats = (): MSTStats => ({
   timeElapsed: 0,
 });
 
-export function createMSTMachine(algorithmId: string) {
-  const initial = generateRandomGraph(DEFAULT_NODE_COUNT);
+export interface MSTInitialData {
+  nodes: GraphNode[];
+  edges: GraphEdge[];
+  nodeCount: number;
+}
 
-  const regenerate = (ctx: any) => {
+export function createMSTMachine(algorithmId: string, initialData?: MSTInitialData) {
+  const initial = initialData
+    ? { nodes: initialData.nodes, edges: initialData.edges }
+    : generateRandomGraph(DEFAULT_NODE_COUNT);
+  const nodeCount = initialData?.nodeCount ?? DEFAULT_NODE_COUNT;
+
+  const regenerate = (ctx: MSTContext) => {
     const g = generateRandomGraph(ctx.nodeCount);
     return {
       nodes: g.nodes,
@@ -28,7 +37,7 @@ export function createMSTMachine(algorithmId: string) {
   };
 
   /* Mid-play reset regenerates graph but preserves sourceNode selection */
-  const playReset = (ctx: any) => {
+  const playReset = (ctx: MSTContext) => {
     const g = generateRandomGraph(ctx.nodeCount);
     return {
       nodes: g.nodes,
@@ -47,7 +56,7 @@ export function createMSTMachine(algorithmId: string) {
     context: {
       nodes: initial.nodes,
       edges: initial.edges,
-      nodeCount: DEFAULT_NODE_COUNT,
+      nodeCount,
       sourceNode: 0,
       speed: 5,
       stepIndex: 0,

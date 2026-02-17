@@ -1,11 +1,9 @@
-import type { AlgorithmSnapshot, AlgorithmStats } from "@/lib/types";
+import type { AlgorithmSnapshot } from "@/lib/types";
+import { createTracker, createTrackedArray } from "@/lib/algorithms/shared";
 
 export function* mergeSort(array: number[]) {
-  const result = [...array];
-  let comparisons = 0;
-  let swaps = 0;
-  let accesses = 0;
-  const startTime = performance.now();
+  const tracker = createTracker();
+  const result = createTrackedArray([...array], tracker);
 
   function* mergeSortHelper(
     arr: number[],
@@ -26,52 +24,42 @@ export function* mergeSort(array: number[]) {
     mid: number,
     right: number
   ): Generator<AlgorithmSnapshot> {
-    const leftArr = arr.slice(left, mid + 1);
-    const rightArr = arr.slice(mid + 1, right + 1);
+    const leftArr = tracker.raw(arr).slice(left, mid + 1);
+    const rightArr = tracker.raw(arr).slice(mid + 1, right + 1);
     let i = 0;
     let j = 0;
     let k = left;
 
     while (i < leftArr.length && j < rightArr.length) {
-      comparisons++;
-      accesses += 2;
-
-      const stats: AlgorithmStats = {
-        comparisons,
-        swaps,
-        accesses,
-        timeElapsed: Math.round(performance.now() - startTime),
-      };
+      tracker.compare();
 
       yield {
-        array: [...arr],
+        array: tracker.raw(arr),
         comparing: [left + i, mid + 1 + j],
-        stats,
+        stats: tracker.snapshot(),
       } as AlgorithmSnapshot;
 
       if (leftArr[i] <= rightArr[j]) {
         arr[k] = leftArr[i];
-        swaps++;
-        accesses++;
+        tracker.swaps++;
 
         yield {
-          array: [...arr],
+          array: tracker.raw(arr),
           comparing: [left + i, mid + 1 + j],
           swapping: [k, left + i],
-          stats: { comparisons, swaps, accesses, timeElapsed: Math.round(performance.now() - startTime) },
+          stats: tracker.snapshot(),
         } as AlgorithmSnapshot;
 
         i++;
       } else {
         arr[k] = rightArr[j];
-        swaps++;
-        accesses++;
+        tracker.swaps++;
 
         yield {
-          array: [...arr],
+          array: tracker.raw(arr),
           comparing: [left + i, mid + 1 + j],
           swapping: [k, mid + 1 + j],
-          stats: { comparisons, swaps, accesses, timeElapsed: Math.round(performance.now() - startTime) },
+          stats: tracker.snapshot(),
         } as AlgorithmSnapshot;
 
         j++;
@@ -81,34 +69,26 @@ export function* mergeSort(array: number[]) {
 
     while (i < leftArr.length) {
       arr[k] = leftArr[i];
+      tracker.swaps++;
       i++;
       k++;
-      swaps++;
-      accesses++;
     }
 
     while (j < rightArr.length) {
       arr[k] = rightArr[j];
+      tracker.swaps++;
       j++;
       k++;
-      swaps++;
-      accesses++;
     }
   }
 
   yield* mergeSortHelper(result, 0, result.length - 1);
 
   const sorted = Array.from({ length: result.length }, (_, i) => i);
-  const finalStats: AlgorithmStats = {
-    comparisons,
-    swaps,
-    accesses,
-    timeElapsed: Math.round(performance.now() - startTime),
-  };
 
   yield {
-    array: result,
+    array: tracker.raw(result),
     sorted,
-    stats: finalStats,
+    stats: tracker.snapshot(),
   } as AlgorithmSnapshot;
 }

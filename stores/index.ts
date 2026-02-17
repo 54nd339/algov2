@@ -28,3 +28,6 @@ export const useAppStore = create<AppState & AppActions>((set) => ({
     set((s) => ({ desktopSidebarOpen: !s.desktopSidebarOpen })),
   setCurrentAlgo: (algo) => set({ currentAlgo: algo }),
 }));
+
+export { useCategoryDataStore } from "./category-data-store";
+

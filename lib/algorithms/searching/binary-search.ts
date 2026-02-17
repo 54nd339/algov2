@@ -1,71 +1,49 @@
-import type { SearchingSnapshot, AlgorithmStats } from "@/lib/types";
+import type { SearchingSnapshot } from "@/lib/types";
+import { createTracker, createTrackedArray } from "@/lib/algorithms/shared";
 
 export function* binarySearch(array: number[], target: number) {
+  const tracker = createTracker();
+  const arr = createTrackedArray([...array], tracker);
   let left = 0;
-  let right = array.length - 1;
-  let comparisons = 0;
-  let accesses = 0;
-  const startTime = performance.now();
+  let right = arr.length - 1;
   const visited: number[] = [];
 
   while (left <= right) {
     const mid = Math.floor((left + right) / 2);
-    comparisons++;
-    accesses++;
+    tracker.compare();
     visited.push(mid);
 
-    const stats: AlgorithmStats = {
-      comparisons,
-      swaps: 0,
-      accesses,
-      timeElapsed: Math.round(performance.now() - startTime),
-    };
-
     yield {
-      array: [...array],
+      array: tracker.raw(arr),
       visited: [...visited],
       found: false,
       searchIndex: mid,
-      stats,
+      stats: tracker.snapshot(),
     } as SearchingSnapshot;
 
-    if (array[mid] === target) {
-      const foundStats: AlgorithmStats = {
-        comparisons,
-        swaps: 0,
-        accesses: accesses + 1,
-        timeElapsed: Math.round(performance.now() - startTime),
-      };
-
+    if (arr[mid] === target) {
       yield {
-        array: [...array],
+        array: tracker.raw(arr),
         visited: [...visited],
         found: true,
         searchIndex: mid,
-        stats: foundStats,
+        stats: tracker.snapshot(),
       } as SearchingSnapshot;
 
       return;
     }
 
-    if (array[mid] < target) {
+    if (arr[mid] < target) {
       left = mid + 1;
     } else {
       right = mid - 1;
     }
   }
 
-  const notFoundStats: AlgorithmStats = {
-    comparisons,
-    swaps: 0,
-    accesses,
-    timeElapsed: Math.round(performance.now() - startTime),
-  };
-
   yield {
-    array: [...array],
+    array: tracker.raw(arr),
     visited: [...visited],
     found: false,
-    stats: notFoundStats,
+    stats: tracker.snapshot(),
   } as SearchingSnapshot;
 }

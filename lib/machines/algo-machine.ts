@@ -5,7 +5,7 @@ import { visualizerStates } from "./visualizer-machine";
 const generateArray = (size: number): number[] =>
   Array.from({ length: size }, () => Math.floor(Math.random() * 100) + 1);
 
-const INITIAL_ARRAY = Array.from({ length: 30 }, (_, i) => i + 1);
+const INITIAL_SIZE = 30;
 
 const resetStats = () => ({
   comparisons: 0,
@@ -17,8 +17,11 @@ const resetStats = () => ({
 export function createAlgoMachine(
   category: "sorting" | "searching",
   algorithmId: string,
+  initialArray?: number[],
 ) {
-  const fullReset = (ctx: any) => ({
+  const startArray = initialArray ?? Array.from({ length: INITIAL_SIZE }, (_, i) => i + 1);
+
+  const fullReset = (ctx: AlgoContext) => ({
     array: generateArray(ctx.array.length),
     stats: resetStats(),
     progress: 0,
@@ -43,7 +46,7 @@ export function createAlgoMachine(
     id: `${category}-${algorithmId}`,
     initial: "idle",
     context: {
-      array: INITIAL_ARRAY,
+      array: startArray,
       speed: 5,
       stepIndex: 0,
       snapshot: null,

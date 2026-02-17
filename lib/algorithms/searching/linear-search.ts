@@ -1,61 +1,37 @@
-import type { SearchingSnapshot, AlgorithmStats } from "@/lib/types";
+import type { SearchingSnapshot } from "@/lib/types";
+import { createTracker, createTrackedArray } from "@/lib/algorithms/shared";
 
 export function* linearSearch(array: number[], target: number) {
-  let comparisons = 0;
-  let accesses = 0;
-  const startTime = performance.now();
+  const tracker = createTracker();
+  const arr = createTrackedArray([...array], tracker);
 
-  for (let i = 0; i < array.length; i++) {
-    comparisons++;
-    accesses++;
-
-    const stats: AlgorithmStats = {
-      comparisons,
-      swaps: 0,
-      accesses,
-      timeElapsed: Math.round(performance.now() - startTime),
-    };
+  for (let i = 0; i < arr.length; i++) {
+    tracker.compare();
 
     yield {
-      array: [...array],
+      array: tracker.raw(arr),
       visited: [i],
       found: false,
-      stats,
+      stats: tracker.snapshot(),
     } as SearchingSnapshot;
 
-    if (array[i] === target) {
-      accesses++;
-
-      const foundStats: AlgorithmStats = {
-        comparisons,
-        swaps: 0,
-        accesses,
-        timeElapsed: Math.round(performance.now() - startTime),
-      };
-
+    if (arr[i] === target) {
       yield {
-        array: [...array],
+        array: tracker.raw(arr),
         visited: Array.from({ length: i + 1 }, (_, idx) => idx),
         found: true,
         searchIndex: i,
-        stats: foundStats,
+        stats: tracker.snapshot(),
       } as SearchingSnapshot;
 
       return;
     }
   }
 
-  const notFoundStats: AlgorithmStats = {
-    comparisons,
-    swaps: 0,
-    accesses,
-    timeElapsed: Math.round(performance.now() - startTime),
-  };
-
   yield {
-    array: [...array],
-    visited: Array.from({ length: array.length }, (_, i) => i),
+    array: tracker.raw(arr),
+    visited: Array.from({ length: arr.length }, (_, i) => i),
     found: false,
-    stats: notFoundStats,
+    stats: tracker.snapshot(),
   } as SearchingSnapshot;
 }

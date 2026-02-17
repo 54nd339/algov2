@@ -1,32 +1,21 @@
-import type { AlgorithmSnapshot, AlgorithmStats } from "@/lib/types";
+import type { AlgorithmSnapshot } from "@/lib/types";
+import { createTracker, createTrackedArray } from "@/lib/algorithms/shared";
 
 export function* selectionSort(array: number[]) {
-  const result = [...array];
-  let comparisons = 0;
-  let swaps = 0;
-  let accesses = 0;
-  const startTime = performance.now();
+  const tracker = createTracker();
+  const result = createTrackedArray([...array], tracker);
 
   for (let i = 0; i < result.length - 1; i++) {
     let minIndex = i;
-    accesses++;
 
     for (let j = i + 1; j < result.length; j++) {
-      comparisons++;
-      accesses++;
-
-      const stats: AlgorithmStats = {
-        comparisons,
-        swaps,
-        accesses,
-        timeElapsed: Math.round(performance.now() - startTime),
-      };
+      tracker.compare();
 
       yield {
-        array: [...result],
+        array: tracker.raw(result),
         comparing: [minIndex, j],
         special: minIndex,
-        stats,
+        stats: tracker.snapshot(),
       } as AlgorithmSnapshot;
 
       if (result[j] < result[minIndex]) {
@@ -35,37 +24,22 @@ export function* selectionSort(array: number[]) {
     }
 
     if (minIndex !== i) {
-      [result[i], result[minIndex]] = [result[minIndex], result[i]];
-      swaps++;
-      accesses += 2;
-
-      const swapStats: AlgorithmStats = {
-        comparisons,
-        swaps,
-        accesses,
-        timeElapsed: Math.round(performance.now() - startTime),
-      };
+      tracker.swap(result, i, minIndex);
 
       yield {
-        array: [...result],
+        array: tracker.raw(result),
         comparing: [i, minIndex],
         swapping: [i, minIndex],
-        stats: swapStats,
+        stats: tracker.snapshot(),
       } as AlgorithmSnapshot;
     }
   }
 
   const sorted = Array.from({ length: result.length }, (_, i) => i);
-  const finalStats: AlgorithmStats = {
-    comparisons,
-    swaps,
-    accesses,
-    timeElapsed: Math.round(performance.now() - startTime),
-  };
 
   yield {
-    array: result,
+    array: tracker.raw(result),
     sorted,
-    stats: finalStats,
+    stats: tracker.snapshot(),
   } as AlgorithmSnapshot;
 }

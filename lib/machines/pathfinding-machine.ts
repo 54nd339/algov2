@@ -1,5 +1,5 @@
 import { assign, setup } from "xstate";
-import type { PathfindingContext, PathfindingEvent, PathfindingSnapshot, PathfindingStats } from "@/lib/types";
+import type { PathfindingContext, PathfindingEvent, PathfindingSnapshot, PathfindingStats, GridCell } from "@/lib/types";
 import { createGrid, generateMaze } from "@/lib/algorithms/pathfinding";
 import { GRID_CELL_SIZE } from "@/config";
 import { visualizerStates } from "./visualizer-machine";
@@ -22,22 +22,34 @@ const resetStats = (): PathfindingStats => ({
   timeElapsed: 0,
 });
 
-export function createPathfindingMachine(algorithmId: string) {
-  const initialGrid = createGrid(
-    DEFAULT_ROWS,
-    DEFAULT_COLS,
-    defaultStart(DEFAULT_ROWS),
-    defaultEnd(DEFAULT_ROWS, DEFAULT_COLS),
-  );
+export interface PathfindingInitialData {
+  grid: GridCell[][];
+  rows: number;
+  cols: number;
+  startNode: { row: number; col: number };
+  endNode: { row: number; col: number };
+}
 
-  const freshGrid = (ctx: any) => ({
+
+
+export function createPathfindingMachine(
+  algorithmId: string,
+  initialData?: PathfindingInitialData,
+) {
+  const rows = initialData?.rows ?? DEFAULT_ROWS;
+  const cols = initialData?.cols ?? DEFAULT_COLS;
+  const startNode = initialData?.startNode ?? defaultStart(rows);
+  const endNode = initialData?.endNode ?? defaultEnd(rows, cols);
+  const initialGrid = initialData?.grid ?? createGrid(rows, cols, startNode, endNode);
+
+  const freshGrid = (ctx: PathfindingContext) => ({
     grid: createGrid(ctx.rows, ctx.cols, ctx.startNode, ctx.endNode),
     stats: resetStats(),
     stepIndex: 0,
     snapshot: null,
   });
 
-  const mazeAction = (ctx: any) => {
+  const mazeAction = (ctx: PathfindingContext) => {
     const base = createGrid(ctx.rows, ctx.cols, ctx.startNode, ctx.endNode);
     const maze = generateMaze(base, ctx.startNode, ctx.endNode);
     return { grid: maze, stats: resetStats(), stepIndex: 0, snapshot: null };
@@ -53,11 +65,11 @@ export function createPathfindingMachine(algorithmId: string) {
     initial: "idle",
     context: {
       grid: initialGrid,
-      rows: DEFAULT_ROWS,
-      cols: DEFAULT_COLS,
+      rows,
+      cols,
       cellSize: GRID_CELL_SIZE,
-      startNode: defaultStart(DEFAULT_ROWS),
-      endNode: defaultEnd(DEFAULT_ROWS, DEFAULT_COLS),
+      startNode,
+      endNode,
       speed: 5,
       stepIndex: 0,
       snapshot: null,
@@ -140,12 +152,12 @@ export function createPathfindingMachine(algorithmId: string) {
         stepIndex: ctx.stepIndex + 1,
       }),
       extraIdleOn: {
-        generateMaze: { actions: assign(({ context }: any) => mazeAction(context)) },
-        clearWalls: { actions: assign(({ context }: any) => freshGrid(context)) },
+        generateMaze: { actions: assign(({ context }: { context: PathfindingContext }) => mazeAction(context)) },
+        clearWalls: { actions: assign(({ context }: { context: PathfindingContext }) => freshGrid(context)) },
       },
       extraDoneOn: {
-        generateMaze: { target: "idle", actions: assign(({ context }: any) => mazeAction(context)) },
-        clearWalls: { target: "idle", actions: assign(({ context }: any) => freshGrid(context)) },
+        generateMaze: { target: "idle", actions: assign(({ context }: { context: PathfindingContext }) => mazeAction(context)) },
+        clearWalls: { target: "idle", actions: assign(({ context }: { context: PathfindingContext }) => freshGrid(context)) },
       },
     }) as any,
   });

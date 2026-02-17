@@ -1,13 +1,11 @@
-import type { AlgorithmSnapshot, AlgorithmStats } from "@/lib/types";
+import type { AlgorithmSnapshot } from "@/lib/types";
+import { createTracker, createTrackedArray } from "@/lib/algorithms/shared";
 
 export function* radixSort(array: number[]) {
-  const result = [...array];
-  let comparisons = 0;
-  let swaps = 0;
-  let accesses = 0;
-  const startTime = performance.now();
+  const tracker = createTracker();
+  const result = createTrackedArray([...array], tracker);
 
-  const max = Math.max(...result);
+  const max = Math.max(...tracker.raw(result));
   let exp = 1;
 
   while (Math.floor(max / exp) > 0) {
@@ -16,21 +14,13 @@ export function* radixSort(array: number[]) {
     for (let i = 0; i < result.length; i++) {
       const digit = Math.floor((result[i] / exp) % 10);
       buckets[digit].push(result[i]);
-      accesses += 2;
-      comparisons++;
-
-      const stats: AlgorithmStats = {
-        comparisons,
-        swaps,
-        accesses,
-        timeElapsed: Math.round(performance.now() - startTime),
-      };
+      tracker.compare();
 
       yield {
-        array: [...result],
+        array: tracker.raw(result),
         comparing: [i, digit],
         special: i,
-        stats,
+        stats: tracker.snapshot(),
       } as AlgorithmSnapshot;
     }
 
@@ -39,20 +29,12 @@ export function* radixSort(array: number[]) {
       for (let j = 0; j < buckets[i].length; j++) {
         result[index] = buckets[i][j];
         index++;
-        swaps++;
-        accesses++;
-
-        const stats: AlgorithmStats = {
-          comparisons,
-          swaps,
-          accesses,
-          timeElapsed: Math.round(performance.now() - startTime),
-        };
+        tracker.swaps++;
 
         yield {
-          array: [...result],
+          array: tracker.raw(result),
           comparing: [i, j],
-          stats,
+          stats: tracker.snapshot(),
         } as AlgorithmSnapshot;
       }
     }
@@ -61,16 +43,10 @@ export function* radixSort(array: number[]) {
   }
 
   const sorted = Array.from({ length: result.length }, (_, i) => i);
-  const finalStats: AlgorithmStats = {
-    comparisons,
-    swaps,
-    accesses,
-    timeElapsed: Math.round(performance.now() - startTime),
-  };
 
   yield {
-    array: result,
+    array: tracker.raw(result),
     sorted,
-    stats: finalStats,
+    stats: tracker.snapshot(),
   } as AlgorithmSnapshot;
 }
